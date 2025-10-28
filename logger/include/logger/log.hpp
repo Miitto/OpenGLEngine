@@ -5,6 +5,7 @@
 #include <memory>
 
 #define __CONCAT(a, b) a##b
+#define __CONCAT_NAMESPACE(a, b) a::b
 
 #define DEFINE_LOGGER(_LOGGER_NAME, _LOGGER_LEVEL)                             \
                                                                                \
@@ -12,7 +13,7 @@
                                                                                \
   void Logger::init() noexcept {                                               \
     s_logger = spdlog::stdout_color_mt(_LOGGER_NAME);                          \
-    s_logger->set_level(__CONCAT(spdlog::level::, _LOGGER_LEVEL));             \
+    s_logger->set_level(__CONCAT_NAMESPACE(spdlog::level, _LOGGER_LEVEL));     \
   }                                                                            \
                                                                                \
   void Logger::ensureInit() noexcept {                                         \
