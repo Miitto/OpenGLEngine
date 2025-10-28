@@ -21,6 +21,9 @@ link_glm(${PROJECT_NAME} PUBLIC)
 include(imgui)
 LINK_IMGUI(${PROJECT_NAME} PUBLIC)
 
+include(spdlog)
+link_spdlog(${PROJECT_NAME} PUBLIC)
+
 target_link_libraries(${PROJECT_NAME} PRIVATE logger::logger)
 
 add_subdirectory(src)
