@@ -5,8 +5,6 @@ target_sources(${PROJECT_NAME}
 
   PRIVATE
     buffer.cpp
-    window.cpp
-    gui.cpp
     logger.cpp
     vao.cpp
     shaders.cpp
