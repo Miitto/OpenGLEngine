@@ -60,6 +60,8 @@ namespace gl {
 
     void* getMapping() const;
 
+    void label(const char name[]) const;
+
   protected:
     inline Buffer() { glCreateBuffers(1, m_id); }
 

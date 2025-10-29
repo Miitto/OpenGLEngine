@@ -55,4 +55,8 @@ namespace gl {
   void* gl::Buffer::getMapping() const { return clearPersistentBit(m_mapping); }
 
   void gl::Buffer::unbind(GLenum target) { glBindBuffer(target, 0); }
+
+  void gl::Buffer::label(const char name[]) const {
+    glObjectLabel(GL_BUFFER, m_id, -1, name);
+  }
 } // namespace gl
