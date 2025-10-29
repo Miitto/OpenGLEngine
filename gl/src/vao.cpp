@@ -4,13 +4,17 @@ namespace gl {
   void gl::Vao::unbind() { glBindVertexArray(0); }
 
   void gl::Vao::bindVertexBuffer(GLuint index, const gl::Id& bufferId,
-                                 GLuint offset, GLuint stride) {
+                                 GLuint offset, GLuint stride) const {
     glVertexArrayVertexBuffer(m_id, index, bufferId, offset, stride);
+  }
+
+  void gl::Vao::bindIndexBuffer(const gl::Id& bufferId) const {
+    glVertexArrayElementBuffer(m_id, bufferId);
   }
 
   void gl::Vao::attribFormat(GLuint index, GLuint numComponents, GLenum type,
                              bool normalize, GLuint offset,
-                             std::optional<GLuint> bufferIndex) {
+                             std::optional<GLuint> bufferIndex) const {
     glEnableVertexArrayAttrib(m_id, index);
     switch (type) {
     case GL_INT:
@@ -30,7 +34,7 @@ namespace gl {
   }
 
   void gl::Vao::bindAttribs(GLuint bufferIndex,
-                            std::initializer_list<GLuint> attribIndices) {
+                            std::initializer_list<GLuint> attribIndices) const {
     for (const auto& index : attribIndices) {
       glVertexArrayAttribBinding(m_id, index, bufferIndex);
     }

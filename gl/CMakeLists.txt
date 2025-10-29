@@ -9,6 +9,12 @@ add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
 message(STATUS "Module path: ${CMAKE_MODULE_PATH}")
 
+option(SHADERS_IN_RUNTIME_DIR "Whether the shaders are located in the runtime dir" FALSE)
+
+if(SHADERS_IN_RUNTIME_DIR)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC SHADERS_IN_RUNTIME_DIR)
+endif()
+
 include(glfw)
 link_glfw(${PROJECT_NAME} PUBLIC)
 

@@ -35,6 +35,9 @@ namespace gl {
     Program(gl::Id&& id) : m_id(std::move(id)) {}
 
   public:
+    explicit Program() = default;
+    inline bool isValid() const { return m_id != 0; }
+
     template <typename... Shaders>
       requires(std::is_same<Shaders, Shader>::value && ...)
     inline static std::optional<Program> create(Shaders&... shaders) {

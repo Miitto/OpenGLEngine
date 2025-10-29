@@ -28,9 +28,9 @@ namespace engine::scene {
     }
   }
 
-  void Node::draw() {
+  void Node::render(const engine::Camera& camera) {
     for (auto& child : *this) {
-      child->draw();
+      child->render(camera);
     }
   }
 

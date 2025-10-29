@@ -87,8 +87,6 @@ namespace engine {
     bool GetSubMesh(int i, const SubMesh* s) const;
     bool GetSubMesh(const std::string& name, const SubMesh* s) const;
 
-    std::vector<glm::vec4>& getColors() { return colors; }
-
   protected:
     void BufferData();
 

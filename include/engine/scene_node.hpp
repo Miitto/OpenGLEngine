@@ -4,6 +4,10 @@
 #include <memory>
 
 namespace engine {
+  class Camera;
+} // namespace engine
+
+namespace engine {
   namespace scene {
     class Node {
 
@@ -44,7 +48,7 @@ namespace engine {
       void UpdateBoundingRadius();
 
       virtual void update(float dt);
-      virtual void draw();
+      virtual void render(const engine::Camera& camera);
 
       inline float GetBoundingRadius() const { return m_absBoundingRadius; }
       inline void SetBoundingRadius(float radius) {

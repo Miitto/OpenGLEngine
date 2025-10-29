@@ -49,12 +49,12 @@ namespace engine {
         std::vector<Pair> opaque;
         std::vector<Pair> transparent;
 
-        inline void draw() const {
+        inline void render(const engine::Camera& camera) const {
           for (const auto node : opaque) {
-            node.node->draw();
+            node.node->render(camera);
           }
           for (const auto node : transparent) {
-            node.node->draw();
+            node.node->render(camera);
           }
         }
       };
@@ -67,9 +67,9 @@ namespace engine {
         }
       }
 
-      inline void draw(const engine::Camera& camera) {
+      inline void render(const engine::Camera& camera) {
         NodeLists lists = BuildNodeLists(camera);
-        lists.draw();
+        lists.render(camera);
       }
 
     protected:

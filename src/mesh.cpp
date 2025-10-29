@@ -6,13 +6,13 @@ using std::string;
 
 namespace engine {
   void Mesh::Draw() {
-    vao.bind();
+    auto bg = vao.bindGuard();
+
     if (bufferObject[INDEX_BUFFER]) {
       glDrawElements(type, indices.size(), GL_UNSIGNED_INT, 0);
     } else {
       glDrawArrays(type, 0, vertices.size());
     }
-    vao.unbind();
   }
 
   void Mesh::DrawSubMesh(int i) {
@@ -31,9 +31,9 @@ namespace engine {
     vao.unbind();
   }
 
-  gl::BasicBuffer UploadAttribute(gl::Vao& vao, int numElements, int dataSize,
-                                  int attribSize, int attribID, void* pointer,
-                                  const string& debugName) {
+  gl::BasicBuffer UploadAttribute(const gl::Vao& vao, int numElements,
+                                  int dataSize, int attribSize, int attribID,
+                                  void* pointer, const string& debugName) {
     using gl::Buffer;
     gl::BasicBuffer buf(numElements * dataSize, pointer,
                         Buffer::Usage::DEFAULT);
@@ -98,6 +98,7 @@ namespace engine {
           static_cast<GLuint>(indices.size() * sizeof(unsigned int)),
           indices.data(), gl::Buffer::Usage::DEFAULT);
       bufferObject[INDEX_BUFFER]->label("Indices");
+      vao.bindIndexBuffer(bufferObject[INDEX_BUFFER]->id());
     }
   }
 

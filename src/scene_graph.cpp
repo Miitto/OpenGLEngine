@@ -21,7 +21,7 @@ namespace engine::scene {
     };
 
     std::function<void(Node&)> addNodeAndChildren = [&](Node& node) {
-      if (frustum.NodeInFrustum(node)) {
+      if (true || frustum.NodeInFrustum(node)) {
         if (node.shouldDraw())
           addNodeToList(node);
 
@@ -50,7 +50,7 @@ namespace engine::scene {
       ++i;
     }
 
-    Logger::debug("Total nodes in lists: {}\n", i);
+    Logger::trace("Total nodes in lists: {}", i);
 
     return lists;
   }

@@ -33,7 +33,13 @@ namespace gl {
     /// <param name="offset"></param> Offset in the buffer to start from
     /// <param name="stride"></param> Stride between vertices
     void bindVertexBuffer(GLuint index, const gl::Id& bufferId, GLuint offset,
-                          GLuint stride);
+                          GLuint stride) const;
+    /// <summary>
+    /// Bind an index buffer to this VAO.
+    /// </summary>
+    /// <param name="bufferId">The Buffer ID</param>
+    void bindIndexBuffer(const gl::Id& bufferId) const;
+
     /// <summary>
     /// Set the format of a vertex attribute. Will also enable the attribute.
     /// Uses DSA
@@ -47,10 +53,10 @@ namespace gl {
     /// this attribute to
     void attribFormat(GLuint index, GLuint numComponents, GLenum type,
                       bool normalize, GLuint offset,
-                      std::optional<GLuint> bufferIndex = std::nullopt);
+                      std::optional<GLuint> bufferIndex = std::nullopt) const;
 
     void bindAttribs(GLuint bufferIndex,
-                     std::initializer_list<GLuint> attribIndices);
+                     std::initializer_list<GLuint> attribIndices) const;
     class BindGuard {
     public:
       ~BindGuard() { Vao::unbind(); }

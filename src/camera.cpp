@@ -1,4 +1,5 @@
 #include "engine/camera.hpp"
+
 #include <glm/glm.hpp>
 #include <glm\ext\matrix_clip_space.hpp>
 #include <glm\ext\matrix_transform.hpp>
@@ -13,11 +14,36 @@ namespace engine {
   const float MOVE_SPEED = 30.0f;
   const float FAST_MOVE_SPEED = 100.f;
 
+  Camera::Camera()
+      : rotation({0.0, 0.0}), position({}), matrices(Matrices()),
+        matrixBuffer({sizeof(Matrices), nullptr,
+                      gl::Buffer::Usage::DYNAMIC | gl::Buffer::Usage::WRITE |
+                          gl::Buffer::Usage::PERSISTENT |
+                          gl::Buffer::Usage::COHERENT}) {
+    matrixBuffer.map(gl::Buffer::Mapping::COHERENT |
+                     gl::Buffer::Mapping::PERSISTENT |
+                     gl::Buffer::Mapping::WRITE);
+  }
+
+  Camera::Camera(Rotation rotation, const glm::vec3& position)
+      : rotation(rotation), position(position), matrices(Matrices()),
+        matrixBuffer({sizeof(Matrices), nullptr,
+                      gl::Buffer::Usage::DYNAMIC | gl::Buffer::Usage::WRITE |
+                          gl::Buffer::Usage::PERSISTENT |
+                          gl::Buffer::Usage::COHERENT}) {
+    matrixBuffer.map(gl::Buffer::Mapping::COHERENT |
+                     gl::Buffer::Mapping::PERSISTENT |
+                     gl::Buffer::Mapping::WRITE);
+  }
+
   PerspectiveCamera::PerspectiveCamera(float nearClip, float farClip,
                                        float aspect, float fov)
       : Camera(),
-        m_projMatrix(glm::perspective(nearClip, farClip, aspect, fov)),
-        m_frustum(m_projMatrix * BuildViewMatrix()) {}
+        m_projMatrix(glm::perspective(fov, aspect, nearClip, farClip)),
+        m_frustum(matrices.viewProj) {
+    buildMatrices();
+    writeMatrices();
+  }
 
   void Camera::update(const Input& input, float dt) {
     auto& delta = input.mouse().delta;
@@ -39,10 +65,8 @@ namespace engine {
     else if (rotation.yaw > 360.0f)
       rotation.yaw -= 360.0f;
 
-    glm::mat4 rot = glm::rotate(glm::mat4(1.0), rotation.yaw, UP);
-    glm::vec3 forward = rot * glm::vec4(FORWARD, 1.0);
-    glm::vec3 right = rot * glm::vec4(RIGHT, 1.0);
-
+    auto forward = this->forward();
+    auto right = glm::normalize(glm::cross(forward, UP));
     auto speed = MOVE_SPEED;
 
     auto check = [&](int key, const glm::vec3& dir) {
@@ -61,20 +85,18 @@ namespace engine {
 
     check(GLFW_KEY_SPACE, UP);
     check(GLFW_KEY_LEFT_CONTROL, UP * -1.0f);
+
+    buildMatrices();
+    writeMatrices();
   }
 
   void PerspectiveCamera::update(const Input& input, float dt) {
     Camera::update(input, dt);
-    auto view = BuildViewMatrix();
-    auto viewProj = m_projMatrix * view;
-    m_frustum = Frustum(viewProj);
+    m_frustum = Frustum(matrices.viewProj);
   }
 
-  glm::mat4 Camera::BuildViewMatrix() const {
-    glm::mat4 rot = glm::rotate(
-        glm::rotate(glm::mat4(1.0), -rotation.pitch, RIGHT), -rotation.yaw, UP);
-    glm::mat4 trans = glm::translate(glm::mat4(1.0), -position);
-    return rot * trans;
+  glm::mat4 Camera::viewMatrix() const {
+    return glm::lookAt(position, position + forward(), UP);
   }
 
   void Camera::CameraDebugUI() const {
