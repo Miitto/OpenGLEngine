@@ -46,6 +46,7 @@ namespace engine {
   }
 
   void Camera::update(const Input& input, float dt) {
+    delta = dt;
     auto& delta = input.mouse().delta;
     rotation.pitch -= (delta.y);
     rotation.yaw -= (delta.x);
@@ -100,6 +101,7 @@ namespace engine {
   }
 
   void Camera::CameraDebugUI() const {
+    ImGui::Text("Delta Time: %.4f s (%.2f FPS)", delta, 1.0f / delta);
     ImGui::Text("Position: (%.2f, %.2f, %.2f)", position.x, position.y,
                 position.z);
     ImGui::Text("Rotation: (%.2f, %.2f)", rotation.pitch, rotation.yaw);

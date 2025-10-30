@@ -79,6 +79,7 @@ namespace engine {
     glm::vec3 position;
     Matrices matrices;
     gl::StorageBuffer matrixBuffer;
+    float delta = 0.0;
   };
 
   class PerspectiveCamera : public Camera {
