@@ -2,6 +2,7 @@
 
 #include "engine/window.hpp"
 #include <functional>
+#include <imgui/imgui.h>
 
 struct ImGuiIO;
 

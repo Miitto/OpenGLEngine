@@ -17,3 +17,6 @@ target_sources(${PROJECT_NAME}
     app.cpp
     mesh.cpp
 )
+
+include(stb)
+link_stb(${PROJECT_NAME} PUBLIC)

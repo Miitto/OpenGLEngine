@@ -13,7 +13,14 @@ namespace gl {
     gl::Id m_id;
 
   public:
-    enum Type { VERTEX = GL_VERTEX_SHADER, FRAGMENT = GL_FRAGMENT_SHADER };
+    enum Type {
+      VERTEX = GL_VERTEX_SHADER,
+      FRAGMENT = GL_FRAGMENT_SHADER,
+      GEOMETRY = GL_GEOMETRY_SHADER,
+      TESS_CONTROL = GL_TESS_CONTROL_SHADER,
+      TESS_EVAL = GL_TESS_EVALUATION_SHADER
+    };
+
     Shader(Type type, std::string_view source);
     ~Shader();
 
