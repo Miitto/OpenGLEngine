@@ -1,5 +1,6 @@
 #pragma once
 
+#include "frame_info.hpp"
 #include <glm/glm.hpp>
 #include <memory>
 
@@ -47,8 +48,9 @@ namespace engine {
       void AddChild(const std::shared_ptr<Node>& child);
       void UpdateBoundingRadius();
 
-      virtual void update(float dt);
-      virtual void render(const engine::Camera& camera);
+      virtual void update(const engine::FrameInfo& info);
+      virtual void render(const engine::FrameInfo& info,
+                          const engine::Camera& camera);
 
       inline float GetBoundingRadius() const { return m_absBoundingRadius; }
       inline void SetBoundingRadius(float radius) {

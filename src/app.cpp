@@ -13,7 +13,7 @@ namespace engine {
     }
   }
 
-  void App::update(float dt) {
+  void App::update(const FrameInfo& frame) {
     window.pollEvents();
     if (glfwGetWindowAttrib(window, GLFW_ICONIFIED) != 0) {
       gui.sleep(10);

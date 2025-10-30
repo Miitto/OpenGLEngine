@@ -16,7 +16,7 @@ namespace engine::scene {
     child->UpdateBoundingRadius();
   }
 
-  void Node::update(float dt) {
+  void Node::update(const engine::FrameInfo& info) {
     if (m_parent) {
       m_transforms.world = m_parent->m_transforms.world * m_transforms.local;
     } else {
@@ -24,13 +24,14 @@ namespace engine::scene {
     }
 
     for (auto& child : m_children) {
-      child->update(dt);
+      child->update(info);
     }
   }
 
-  void Node::render(const engine::Camera& camera) {
+  void Node::render(const engine::FrameInfo& info,
+                    const engine::Camera& camera) {
     for (auto& child : *this) {
-      child->render(camera);
+      child->render(info, camera);
     }
   }
 

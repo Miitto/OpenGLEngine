@@ -16,6 +16,8 @@ target_sources(${PROJECT_NAME}
     frustum.cpp
     app.cpp
     mesh.cpp
+    mesh_animation.cpp
+    mesh_material.cpp
 )
 
 include(stb)

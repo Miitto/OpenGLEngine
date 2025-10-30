@@ -4,15 +4,18 @@
 #include "engine/input.hpp"
 #include "engine/scene_graph.hpp"
 #include "engine/window.hpp"
+#include "frame_info.hpp"
 #include <chrono>
 
 namespace engine {
+
   class App {
   protected:
     engine::Window window;
     engine::Input input;
     engine::gui::Context gui;
     int flags = 0;
+    uint32_t frameIndex = 0;
 
   public:
     enum AppFlags {
@@ -23,17 +26,21 @@ namespace engine {
     App() = delete;
     App(int width, int height, const char title[]);
 
-    virtual void update(float dt);
-    virtual void render() = 0;
+    virtual void update(const FrameInfo& frame);
+    virtual void render(const FrameInfo& frame) = 0;
 
     void bail() { flags |= BAIL; }
     bool shouldBail() const { return (flags & BAIL) != 0; }
     bool shouldClose() const { return window.shouldClose(); }
 
+    uint32_t getFrameIndex() const { return frameIndex; }
+
     void postRender() {
       input.frameEnd();
       gui.endFrame();
       window.swapBuffers();
+
+      ++frameIndex;
     }
   };
 
@@ -47,8 +54,10 @@ namespace engine {
       float delta = millis.count() / 1000;
       time = now;
 
-      app.update(delta);
-      app.render();
+      FrameInfo frameInfo{app.getFrameIndex(), delta};
+
+      app.update(frameInfo);
+      app.render(frameInfo);
       app.postRender();
     }
 

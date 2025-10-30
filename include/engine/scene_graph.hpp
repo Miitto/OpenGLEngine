@@ -1,6 +1,7 @@
 #pragma once
 
 #include "camera.hpp"
+#include "frame_info.hpp"
 #include "scene_node.hpp"
 
 namespace engine {
@@ -49,27 +50,29 @@ namespace engine {
         std::vector<Pair> opaque;
         std::vector<Pair> transparent;
 
-        inline void render(const engine::Camera& camera) const {
+        inline void render(const engine::FrameInfo& info,
+                           const engine::Camera& camera) const {
           for (const auto node : opaque) {
-            node.node->render(camera);
+            node.node->render(info, camera);
           }
           for (const auto node : transparent) {
-            node.node->render(camera);
+            node.node->render(info, camera);
           }
         }
       };
 
       NodeLists BuildNodeLists(const engine::Camera& camera);
 
-      inline void update(float dt) {
+      inline void update(const engine::FrameInfo& info) {
         for (auto& root : m_roots) {
-          root->update(dt);
+          root->update(info);
         }
       }
 
-      inline void render(const engine::Camera& camera) {
+      inline void render(const engine::FrameInfo& info,
+                         const engine::Camera& camera) {
         NodeLists lists = BuildNodeLists(camera);
-        lists.render(camera);
+        lists.render(info, camera);
       }
 
     protected:
