@@ -21,12 +21,13 @@ namespace gl {
 
     Mapping(const Mapping&) = delete;
     Mapping& operator=(const Mapping&) = delete;
-    inline Mapping(Mapping&& o) : buffer(o.buffer), ptr(o.ptr), size(o.size) {
+    inline Mapping(Mapping&& o) noexcept
+        : buffer(o.buffer), ptr(o.ptr), size(o.size) {
       o.buffer = nullptr;
       o.ptr = nullptr;
       o.size = 0;
     }
-    inline Mapping& operator=(Mapping&& o) {
+    inline Mapping& operator=(Mapping&& o) noexcept {
       if (this != &o) {
         buffer = o.buffer;
         ptr = o.ptr;
