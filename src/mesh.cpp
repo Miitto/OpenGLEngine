@@ -34,6 +34,36 @@ namespace engine {
     vao.unbind();
   }
 
+  void Mesh::BatchSubmeshes() {
+    if (meshLayers.size() == 0) {
+      return;
+    }
+
+    std::vector<GLsizei> counts;
+    std::vector<GLvoid*> offsets;
+    for (const auto& subMesh : meshLayers) {
+      counts.push_back(static_cast<GLsizei>(subMesh.count));
+      if (indexOffset != 0) {
+        auto vertexOffset = subMesh.start * sizeof(unsigned int);
+        auto offset = indexOffset + vertexOffset;
+        offsets.push_back(reinterpret_cast<GLvoid*>(offset));
+      } else {
+        offsets.push_back(reinterpret_cast<GLvoid*>(subMesh.start));
+      }
+    }
+
+    vao.bind();
+    if (indexOffset != 0) {
+      glMultiDrawElements(
+          type, counts.data(), GL_UNSIGNED_INT,
+          reinterpret_cast<const GLvoid* const*>(offsets.data()),
+          static_cast<GLsizei>(meshLayers.size()));
+    } else {
+      glMultiDrawArrays(type, reinterpret_cast<const GLint*>(offsets.data()),
+                        counts.data(), static_cast<GLsizei>(meshLayers.size()));
+    }
+  }
+
   void Mesh::BufferData() {
     auto vertexNum = vertices.size();
     if (colors.size() > vertexNum) {

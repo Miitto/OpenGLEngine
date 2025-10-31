@@ -32,6 +32,16 @@ namespace gl {
     }
 
     inline void generateMipmap() const { glGenerateTextureMipmap(m_id); }
+    inline GLuint64 getHandle() const { return glGetTextureHandleARB(m_id); }
+    inline void makeResident() const { makeHandleResident(getHandle()); }
+    inline void makeNonResident() const { makeHandleNonResident(getHandle()); }
+
+    inline static void makeHandleResident(GLuint64 handle) {
+      glMakeTextureHandleResidentARB(handle);
+    }
+    inline static void makeHandleNonResident(GLuint64 handle) {
+      glMakeTextureHandleNonResidentARB(handle);
+    }
 
     constexpr inline static GLenum formatFromChannels(int channels) {
       switch (channels) {
@@ -79,7 +89,7 @@ namespace gl {
                           type, pixels);
     }
 
-    const Size& size() const { return m_size; }
+    const gl::Texture::Size& size() const { return m_size; }
   };
 
   class Texture2DMultiSample {
@@ -105,5 +115,54 @@ namespace gl {
     }
 
     const gl::Texture::Size& size() const { return m_size; }
+  };
+
+  class TextureArray {
+  public:
+    struct Size {
+      GLsizei width;
+      GLsizei height;
+      GLsizei depth;
+    };
+
+  protected:
+    gl::Id m_id = 0;
+    Size m_size{};
+
+  public:
+    TextureArray() { glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, m_id); }
+    TextureArray(Size size, GLenum format, GLenum internalFormat, void* data) {
+      glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, m_id);
+
+      storage(1, internalFormat, size);
+      subImage(0, 0, 0, 0, size.width, size.height, size.depth, format,
+               GL_UNSIGNED_BYTE, data);
+    }
+    const gl::Id& id() const { return m_id; }
+
+    inline void label(const char* name) const {
+      glObjectLabel(GL_TEXTURE, m_id, -1, name);
+    }
+
+    inline void generateMipmap() const { glGenerateTextureMipmap(m_id); }
+
+    void bind(uint8_t unit) const { glBindTextureUnit(unit, m_id); }
+    static void unbind(GLenum unit) { glBindTextureUnit(unit, 0); }
+    void setParameter(GLenum pname, GLint param) const {
+      glTextureParameteri(m_id, pname, param);
+    }
+    void storage(GLint level, GLenum internalformat, Size size) {
+      m_size = size;
+      glTextureStorage3D(m_id, level, internalformat, size.width, size.height,
+                         size.depth);
+    }
+    void subImage(GLint level, GLint xoffset, GLint yoffset, GLint zoffset,
+                  GLsizei width, GLsizei height, GLsizei depth, GLenum format,
+                  GLenum type, const void* pixels) const {
+      glTextureSubImage3D(m_id, level, xoffset, yoffset, zoffset, width, height,
+                          depth, format, type, pixels);
+    }
+
+    const Size& size() const { return m_size; }
   };
 } // namespace gl

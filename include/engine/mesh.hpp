@@ -60,6 +60,7 @@ namespace engine {
 
     void Draw();
     void DrawSubMesh(int i);
+    void BatchSubmeshes();
 
     static std::expected<Mesh, std::string>
     LoadFromMeshFile(const std::string& name);

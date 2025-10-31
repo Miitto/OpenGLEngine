@@ -61,6 +61,10 @@ namespace engine {
                          data);
     }
 
+    const glm::ivec2& getDimensions() const { return dimensions; }
+    const int getChannels() const { return channels; }
+    const unsigned char* getData() const { return data; }
+
   protected:
     glm::ivec2 dimensions;
     int channels;
