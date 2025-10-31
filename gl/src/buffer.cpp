@@ -40,12 +40,12 @@ namespace gl {
   Mapping::operator void*() const { return get(); }
 
   void Mapping::write(const void* data, GLuint length, GLuint offset) const {
+    auto ptr = reinterpret_cast<char*>(get());
 #ifndef NDEBUG
     if (data == nullptr) {
       gl::Logger::error("Attempted to write null data to mapped buffer");
       return;
     }
-    auto ptr = reinterpret_cast<char*>(get());
 
     if (ptr == nullptr) {
       gl::Logger::error("Attempted to write to unmapped buffer");
