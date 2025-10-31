@@ -7,9 +7,10 @@ using std::string;
 namespace engine {
   void Mesh::Draw() {
     auto bg = vao.bindGuard();
-
-    if (bufferObject[INDEX_BUFFER]) {
-      glDrawElements(type, indices.size(), GL_UNSIGNED_INT, 0);
+    if (indexOffset != 0) {
+      uintptr_t offset = static_cast<uintptr_t>(indexOffset);
+      glDrawElements(type, indices.size(), GL_UNSIGNED_INT,
+                     reinterpret_cast<GLvoid*>(offset));
     } else {
       glDrawArrays(type, 0, vertices.size());
     }
@@ -22,84 +23,118 @@ namespace engine {
     SubMesh m = meshLayers[i];
 
     vao.bind();
-    if (bufferObject[INDEX_BUFFER]) {
-      const GLvoid* offset = (const GLvoid*)(m.start * sizeof(unsigned int));
-      glDrawElements(type, m.count, GL_UNSIGNED_INT, offset);
+    if (indexOffset != 0) {
+      auto vertexOffset = m.start * sizeof(unsigned int);
+
+      auto offset = indexOffset + vertexOffset;
+      glDrawElements(type, m.count, GL_UNSIGNED_INT, (const GLvoid*)offset);
     } else {
       glDrawArrays(type, m.start, m.count); // Draw the triangle!
     }
     vao.unbind();
   }
 
-  gl::BasicBuffer UploadAttribute(const gl::Vao& vao, int numElements,
-                                  int dataSize, int attribSize, int attribID,
-                                  void* pointer, const string& debugName) {
-    using gl::Buffer;
-    gl::BasicBuffer buf(numElements * dataSize, pointer,
-                        Buffer::Usage::DEFAULT);
-    vao.bindVertexBuffer(attribID, buf.id(), 0, dataSize);
-    vao.attribFormat(attribID, attribSize, GL_FLOAT, GL_FALSE, 0, attribID);
+  void Mesh::BufferData() {
+    auto vertexNum = vertices.size();
+    if (colors.size() > vertexNum) {
+      engine::Logger::warn(
+          "Mesh::BufferData: colors size greater than vertices size!");
+    }
+    if (textureCoords.size() > vertexNum) {
+      engine::Logger::warn(
+          "Mesh::BufferData: textureCoords size greater than vertices size!");
+    }
+    if (normals.size() > vertexNum) {
+      engine::Logger::warn(
+          "Mesh::BufferData: normals size greater than vertices size!");
+    }
+    if (tangents.size() > vertexNum) {
+      engine::Logger::warn(
+          "Mesh::BufferData: tangents size greater than vertices size!");
+    }
+    if (weights.size() > vertexNum) {
+      engine::Logger::warn(
+          "Mesh::BufferData: weights size greater than vertices size!");
+    }
+    if (weightIndices.size() > vertexNum) {
+      engine::Logger::warn(
+          "Mesh::BufferData: weightIndices size greater than vertices size!");
+    }
 
-    buf.label(debugName.c_str());
+#define SZ(VEC, T) auto VEC##Size = static_cast<GLuint>(VEC.size() * sizeof(T))
+    SZ(vertices, glm::vec3);
+    SZ(colors, glm::vec4);
+    SZ(textureCoords, glm::vec2);
+    SZ(normals, glm::vec3);
+    SZ(tangents, glm::vec4);
+    SZ(weights, glm::vec4);
+    SZ(weightIndices, glm::ivec4);
+    SZ(indices, unsigned int);
+#undef SZ
+    indexOffset = verticesSize + colorsSize + textureCoordsSize + normalsSize +
+                  tangentsSize + weightsSize + weightIndicesSize;
+    uint64_t size = indexOffset + indicesSize;
 
-    return buf;
+    buffer.init(size, nullptr, gl::Buffer::Usage::WRITE);
+
+    vao.attribFormat(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    GLuint stride = sizeof(glm::vec3);
+
+#define AC(FIELD) !FIELD.empty()
+
+    if (AC(colors)) {
+      vao.attribFormat(1, 4, GL_FLOAT, GL_FALSE, stride, 0);
+      stride += sizeof(glm::vec4);
+    }
+    if (AC(textureCoords)) {
+      vao.attribFormat(2, 2, GL_FLOAT, GL_FALSE, stride, 0);
+      stride += sizeof(glm::vec2);
+    }
+    if (AC(normals)) {
+      vao.attribFormat(3, 3, GL_FLOAT, GL_FALSE, stride, 0);
+      stride += sizeof(glm::vec3);
+    }
+    if (AC(tangents)) {
+      vao.attribFormat(4, 4, GL_FLOAT, GL_FALSE, stride, 0);
+      stride += sizeof(glm::vec4);
+    }
+    if (AC(weights)) {
+      vao.attribFormat(5, 4, GL_FLOAT, GL_FALSE, stride, 0);
+      stride += sizeof(glm::vec4);
+    }
+    if (AC(weightIndices)) {
+      vao.attribFormat(6, 4, GL_INT, GL_FALSE, stride, 0);
+      stride += sizeof(glm::ivec4);
+    }
+    if (AC(indices)) {
+      vao.bindIndexBuffer(buffer.id());
+    }
+
+    vao.bindVertexBuffer(0, buffer.id(), 0, stride);
+
+    auto mapping = buffer.map(gl::Buffer::Mapping::WRITE |
+                              gl::Buffer::Mapping::INVALIDATE_BUFFER);
+
+#define WRITE(VEC, T)                                                          \
+  if (AC(VEC)) {                                                               \
+    mapping.write(&VEC[i], sizeof(T), offset);                                 \
+    offset += sizeof(T);                                                       \
   }
 
-  void Mesh::BufferData() {
-
-    int numVertices = static_cast<int>(vertices.size());
-
-    ////Buffer vertex data
-    bufferObject[VERTEX_BUFFER] =
-        UploadAttribute(vao, numVertices, sizeof(glm::vec3), 3, VERTEX_BUFFER,
-                        vertices.data(), "Positions");
-
-    if (!colors.empty()) {
-      bufferObject[COLOR_BUFFER] =
-          UploadAttribute(vao, numVertices, sizeof(glm::vec4), 4, COLOR_BUFFER,
-                          colors.data(), "Colors");
+    GLuint offset = 0;
+    for (size_t i = 0; i < vertices.size(); ++i) {
+      WRITE(vertices, glm::vec3);
+      WRITE(colors, glm::vec4);
+      WRITE(textureCoords, glm::vec2);
+      WRITE(normals, glm::vec3);
+      WRITE(tangents, glm::vec4);
+      WRITE(weights, glm::vec4);
+      WRITE(weightIndices, glm::ivec4);
     }
 
-    if (!textureCoords.empty()) { // Buffer texture data
-      bufferObject[TEXTURE_BUFFER] =
-          UploadAttribute(vao, numVertices, sizeof(glm::vec2), 2,
-                          TEXTURE_BUFFER, textureCoords.data(), "TexCoords");
-    }
-
-    if (!normals.empty()) { // Buffer normal data
-      bufferObject[NORMAL_BUFFER] =
-          UploadAttribute(vao, numVertices, sizeof(glm::vec3), 3, NORMAL_BUFFER,
-                          normals.data(), "Normals");
-    }
-
-    if (!tangents.empty()) { // Buffer tangent data
-      bufferObject[TANGENT_BUFFER] =
-          UploadAttribute(vao, numVertices, sizeof(glm::vec4), 4,
-                          TANGENT_BUFFER, tangents.data(), "Tangents");
-    }
-
-    if (!weights.empty()) { // Buffer weights data
-      bufferObject[WEIGHTVALUE_BUFFER] =
-          UploadAttribute(vao, numVertices, sizeof(glm::vec4), 4,
-                          WEIGHTVALUE_BUFFER, weights.data(), "Weights");
-    }
-
-    // Buffer weight indices data...uses a different function since its
-    // integers...
-    if (!weightIndices.empty()) {
-      bufferObject[WEIGHTINDEX_BUFFER] = UploadAttribute(
-          vao, numVertices, sizeof(int) * 4, 4, WEIGHTINDEX_BUFFER,
-          weightIndices.data(), "Weight Indices");
-    }
-
-    // buffer index data
-    if (!indices.empty()) {
-      bufferObject[INDEX_BUFFER] = gl::BasicBuffer(
-          static_cast<GLuint>(indices.size() * sizeof(unsigned int)),
-          indices.data(), gl::Buffer::Usage::DEFAULT);
-      bufferObject[INDEX_BUFFER]->label("Indices");
-      vao.bindIndexBuffer(bufferObject[INDEX_BUFFER]->id());
-    }
+    mapping.write(indices.data(), indicesSize, offset);
+#undef WRITE
+#undef AC
   }
 
   /*
@@ -160,7 +195,8 @@ namespace engine {
     }
   }
 
-  void ReadTextVertexIndices(std::ifstream& file, std::vector<int>& element,
+  void ReadTextVertexIndices(std::ifstream& file,
+                             std::vector<glm::ivec4>& element,
                              int numVertices) {
     for (int i = 0; i < numVertices; ++i) {
       int indices[4];
@@ -168,10 +204,7 @@ namespace engine {
       file >> indices[1];
       file >> indices[2];
       file >> indices[3];
-      element.emplace_back(indices[0]);
-      element.emplace_back(indices[1]);
-      element.emplace_back(indices[2]);
-      element.emplace_back(indices[3]);
+      element.emplace_back(indices[0], indices[1], indices[2], indices[3]);
     }
   }
 
@@ -285,7 +318,7 @@ namespace engine {
     std::vector<glm::vec4> tangents;
 
     std::vector<glm::vec4> weights;
-    std::vector<int> weightIndices;
+    std::vector<glm::ivec4> weightIndices;
 
     std::vector<uint32_t> indices;
 
@@ -367,7 +400,8 @@ namespace engine {
              std::vector<glm::vec2>&& textureCoords,
              std::vector<glm::vec3>&& normals,
              std::vector<glm::vec4>&& tangents,
-             std::vector<glm::vec4>&& weights, std::vector<int>&& weightIndices,
+             std::vector<glm::vec4>&& weights,
+             std::vector<glm::ivec4>&& weightIndices,
              std::vector<uint32_t>&& indices, std::vector<glm::mat4>&& bindPose,
              std::vector<glm::mat4>&& inverseBindPose,
              std::vector<std::string>&& jointNames,

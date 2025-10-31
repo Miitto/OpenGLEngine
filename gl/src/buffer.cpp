@@ -18,8 +18,50 @@ namespace {
 } // namespace
 
 namespace gl {
-  inline void gl::Buffer::init(GLuint size, const void* data,
-                               UsageBitFlag flags) {
+
+  Mapping::Mapping(gl::Buffer* buffer, void* ptr, GLuint size, bool persistent)
+      : buffer(buffer), ptr(ptr), size(size) {
+    if (persistent) {
+      this->ptr = setPersistentBit(ptr);
+    }
+  }
+
+  Mapping::~Mapping() {
+    if (isValid() && !isPersistent()) {
+      buffer->unmap();
+    }
+  }
+
+  bool Mapping::isPersistent() const {
+    return (reinterpret_cast<intptr_t>(ptr) & PERSISTENT_MAP_BIT) != 0;
+  }
+
+  void* Mapping::get() const { return clearPersistentBit(ptr); }
+  Mapping::operator void*() const { return get(); }
+
+  void Mapping::write(const void* data, GLuint length, GLuint offset) const {
+#ifndef NDEBUG
+    if (data == nullptr) {
+      gl::Logger::error("Attempted to write null data to mapped buffer");
+      return;
+    }
+    auto ptr = reinterpret_cast<char*>(get());
+
+    if (ptr == nullptr) {
+      gl::Logger::error("Attempted to write to unmapped buffer");
+      return;
+    }
+
+    if (offset + length > size) {
+      gl::Logger::error("Attempted to write beyond mapped range");
+      return;
+    }
+#endif
+    char* dst = ptr + offset;
+    memcpy(dst, data, length);
+  }
+
+  void gl::Buffer::init(GLuint size, const void* data, UsageBitFlag flags) {
 #ifndef NDEBUG
     if (m_size != 0) {
       gl::Logger::error("Attempted to reinitialize a buffer");
@@ -30,29 +72,35 @@ namespace gl {
     glNamedBufferStorage(m_id, size, data, flags);
   }
 
-  void* gl::Buffer::map(MappingBitFlag flags, GLuint offset, GLuint length) {
+  const gl::Mapping gl::Buffer::map(MappingBitFlag flags, GLuint offset,
+                                    GLuint length) {
     length = length == std::numeric_limits<GLuint>::max() ? m_size : length;
 
-    m_mapping = glMapNamedBufferRange(m_id, offset, length, flags);
-    if (flags & GL_MAP_PERSISTENT_BIT) {
-      m_mapping = setPersistentBit(m_mapping);
+    auto ptr = glMapNamedBufferRange(m_id, offset, length, flags);
+    if ((flags & GL_MAP_PERSISTENT_BIT) != 0) {
+      m_mapping = setPersistentBit(ptr);
     }
-    return clearPersistentBit(m_mapping);
+
+    return gl::Mapping(this, ptr, length, (flags & GL_MAP_PERSISTENT_BIT) != 0);
   }
 
   inline void gl::Buffer::unmap() {
-    if (m_mapping) {
-#ifndef NDEBUG
-      if ((reinterpret_cast<intptr_t>(m_mapping) & PERSISTENT_MAP_BIT) != 0) {
-        gl::Logger::warn("Unmapped a persistently mapped buffer");
-      }
-#endif
-      glUnmapNamedBuffer(m_id);
-      m_mapping = nullptr;
-    }
+    glUnmapNamedBuffer(m_id);
+    m_mapping = {};
   }
 
-  void* gl::Buffer::getMapping() const { return clearPersistentBit(m_mapping); }
+  /// <summary>
+  /// Retrive the current persistent mapping of the buffer, if any.
+  /// Mapping will be invalid if the buffer is not persistently mapped.
+  /// </summary>
+  /// <returns></returns>
+  const gl::Mapping gl::Buffer::getMapping() const {
+    // Yucky const_cast, but preferable to needing a mutable buffer to retrieve
+    // the mapping
+    return gl::Mapping(
+        const_cast<gl::Buffer*>(this), const_cast<void*>(m_mapping), m_size,
+        (reinterpret_cast<uintptr_t>(m_mapping) & PERSISTENT_MAP_BIT) != 0);
+  }
 
   void gl::Buffer::unbind(GLenum target) { glBindBuffer(target, 0); }
 

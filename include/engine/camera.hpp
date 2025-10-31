@@ -71,9 +71,9 @@ namespace engine {
       return matrices;
     }
 
-    void writeMatrices() const {
-      auto mapping = matrixBuffer.getMapping();
-      memcpy(mapping, &matrices, sizeof(Matrices));
+    inline void writeMatrices() const {
+      auto& mapping = matrixBuffer.getMapping();
+      mapping.write(&matrices, sizeof(Matrices));
     }
 
     Rotation rotation;

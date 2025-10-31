@@ -96,7 +96,8 @@ namespace engine {
     Mesh(std::vector<glm::vec3>&& vertices, std::vector<glm::vec4>&& colors,
          std::vector<glm::vec2>&& textureCoords,
          std::vector<glm::vec3>&& normals, std::vector<glm::vec4>&& tangents,
-         std::vector<glm::vec4>&& weights, std::vector<int>&& weightIndices,
+         std::vector<glm::vec4>&& weights,
+         std::vector<glm::ivec4>&& weightIndices,
          std::vector<uint32_t>&& indices, std::vector<glm::mat4>&& bindPose,
          std::vector<glm::mat4>&& inverseBindPose,
          std::vector<std::string>&& jointNames, std::vector<int>&& jointParents,
@@ -104,8 +105,11 @@ namespace engine {
          std::vector<std::string>&& layerNames);
     void BufferData();
 
+    GLuint indexOffset = 0;
+
     gl::Vao vao = {};
-    std::array<std::optional<gl::BasicBuffer>, MAX_BUFFER> bufferObject = {};
+    gl::BasicBuffer buffer = {};
+    gl::StorageBuffer jointBuffer = {};
 
     GLuint type = GL_TRIANGLES;
 
@@ -116,7 +120,7 @@ namespace engine {
     std::vector<glm::vec4> tangents;
 
     std::vector<glm::vec4> weights;
-    std::vector<int> weightIndices;
+    std::vector<glm::ivec4> weightIndices;
 
     std::vector<uint32_t> indices;
 

@@ -6,6 +6,48 @@
 #include <limits>
 
 namespace gl {
+  class Buffer;
+
+  class Mapping {
+    gl::Buffer* buffer;
+    void* ptr;
+    GLuint size;
+
+  public:
+    Mapping() = default;
+    Mapping(gl::Buffer* buffer, void* ptr, GLuint size = 0,
+            bool persistent = false);
+    ~Mapping();
+
+    Mapping(const Mapping&) = delete;
+    Mapping& operator=(const Mapping&) = delete;
+    inline Mapping(Mapping&& o) : buffer(o.buffer), ptr(o.ptr), size(o.size) {
+      o.buffer = nullptr;
+      o.ptr = nullptr;
+      o.size = 0;
+    }
+    inline Mapping& operator=(Mapping&& o) {
+      if (this != &o) {
+        buffer = o.buffer;
+        ptr = o.ptr;
+        size = o.size;
+        o.buffer = nullptr;
+        o.ptr = nullptr;
+        o.size = 0;
+      }
+      return *this;
+    }
+
+    inline bool isValid() const { return ptr != nullptr && buffer != nullptr; }
+
+    operator bool() const { return ptr != nullptr; }
+    explicit operator void*() const;
+    void* get() const;
+
+    bool isPersistent() const;
+    void write(const void* data, GLuint length, GLuint offset = 0) const;
+  };
+
   class Buffer {
   protected:
     gl::Id m_id = 0;
@@ -37,13 +79,15 @@ namespace gl {
     };
     using MappingBitFlag = Bitflag<Mapping>;
 
+    inline bool isValid() const { return m_id != 0; }
+
     inline ~Buffer() {
       if (m_id != 0)
         glDeleteBuffers(1, m_id);
     }
 
-    inline void init(GLuint size, const void* data = nullptr,
-                     UsageBitFlag usage = Usage::DEFAULT);
+    void init(GLuint size, const void* data = nullptr,
+              UsageBitFlag usage = Usage::DEFAULT);
 
     Buffer(const Buffer&) = delete;
     Buffer& operator=(const Buffer&) = delete;
@@ -54,11 +98,11 @@ namespace gl {
     inline const gl::Id& id() const { return m_id; }
     static void unbind(GLenum target);
 
-    void* map(MappingBitFlag flags, GLuint offset = 0,
-              GLuint length = std::numeric_limits<GLuint>::max());
+    const gl::Mapping map(MappingBitFlag flags, GLuint offset = 0,
+                          GLuint length = std::numeric_limits<GLuint>::max());
     void unmap();
 
-    void* getMapping() const;
+    const gl::Mapping getMapping() const;
 
     void label(const char name[]) const;
 
