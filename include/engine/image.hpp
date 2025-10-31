@@ -8,6 +8,9 @@
 
 namespace engine {
   class Image {
+    static bool inited;
+    static void ensureInit();
+
     Image(glm::ivec2 dim, int channels, unsigned char* data)
         : dimensions(dim), channels(channels), data(data) {}
 
@@ -34,6 +37,7 @@ namespace engine {
 
     static inline std::expected<Image, std::string>
     fromFile(std::string_view file, int desiredChannels = 0) {
+      ensureInit();
       int width, height, channels;
       unsigned char* data =
           stbi_load(file.data(), &width, &height, &channels, desiredChannels);

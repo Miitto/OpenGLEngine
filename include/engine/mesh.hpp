@@ -31,8 +31,8 @@ namespace engine {
   // holds which data
   enum MeshBuffer {
     VERTEX_BUFFER,
-    TEXTURE_BUFFER,
     COLOR_BUFFER,
+    TEXTURE_BUFFER,
     NORMAL_BUFFER,
     TANGENT_BUFFER,
 
@@ -53,11 +53,16 @@ namespace engine {
 
     Mesh(void) = default;
     ~Mesh(void) = default;
+    Mesh(const Mesh& other) = delete;
+    Mesh& operator=(const Mesh& other) = delete;
+    Mesh(Mesh&& other) = default;
+    Mesh& operator=(Mesh&& other) = default;
 
     void Draw();
     void DrawSubMesh(int i);
 
-    static Mesh* LoadFromMeshFile(const std::string& name);
+    static std::expected<Mesh, std::string>
+    LoadFromMeshFile(const std::string& name);
 
     unsigned int GetVertexCount() const {
       return (unsigned int)vertices.size();
@@ -88,6 +93,15 @@ namespace engine {
     bool GetSubMesh(const std::string& name, const SubMesh* s) const;
 
   protected:
+    Mesh(std::vector<glm::vec3>&& vertices, std::vector<glm::vec4>&& colors,
+         std::vector<glm::vec2>&& textureCoords,
+         std::vector<glm::vec3>&& normals, std::vector<glm::vec4>&& tangents,
+         std::vector<glm::vec4>&& weights, std::vector<int>&& weightIndices,
+         std::vector<uint32_t>&& indices, std::vector<glm::mat4>&& bindPose,
+         std::vector<glm::mat4>&& inverseBindPose,
+         std::vector<std::string>&& jointNames, std::vector<int>&& jointParents,
+         std::vector<SubMesh>&& meshLayers,
+         std::vector<std::string>&& layerNames);
     void BufferData();
 
     gl::Vao vao = {};

@@ -44,6 +44,7 @@ namespace gl {
   public:
     explicit Program() = default;
     inline bool isValid() const { return m_id != 0; }
+    inline GLuint id() const { return m_id; }
 
     template <typename... Shaders>
       requires(std::is_same<Shaders, Shader>::value && ...)

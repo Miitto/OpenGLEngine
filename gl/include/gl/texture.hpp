@@ -27,6 +27,12 @@ namespace gl {
     }
     const gl::Id& id() const { return m_id; }
 
+    inline void label(const char* name) const {
+      glObjectLabel(GL_TEXTURE, m_id, -1, name);
+    }
+
+    inline void generateMipmap() const { glGenerateTextureMipmap(m_id); }
+
     constexpr inline static GLenum formatFromChannels(int channels) {
       switch (channels) {
       case 1:

@@ -18,7 +18,7 @@ target_sources(${PROJECT_NAME}
     mesh.cpp
     mesh_animation.cpp
     mesh_material.cpp
-)
+ "image.cpp")
 
 include(stb)
 link_stb(${PROJECT_NAME} PUBLIC)

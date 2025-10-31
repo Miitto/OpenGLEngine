@@ -26,6 +26,7 @@ namespace engine {
     ~Camera() = default;
 
     virtual void update(const Input& input, float dt);
+    virtual void onResize(int width, int height) = 0;
 
     inline const Matrices& GetMatrices() const { return matrices; }
     inline const glm::vec3& GetPosition() const { return position; }
@@ -49,7 +50,7 @@ namespace engine {
 
     virtual const Frustum& GetFrustum() const = 0;
 
-    void CameraDebugUI() const;
+    void CameraDebugUI();
 
   protected:
     glm::mat4 viewMatrix() const;
@@ -80,6 +81,8 @@ namespace engine {
     Matrices matrices;
     gl::StorageBuffer matrixBuffer;
     float delta = 0.0;
+    int polygonType = 0;
+    bool vsync = true;
   };
 
   class PerspectiveCamera : public Camera {
@@ -89,12 +92,17 @@ namespace engine {
     ~PerspectiveCamera() = default;
 
     void update(const Input& input, float dt) override;
+    void onResize(int width, int height) override;
 
     const Frustum& GetFrustum() const override { return m_frustum; };
 
     glm::mat4 projMatrix() const override { return m_projMatrix; }
 
   protected:
+    float fov;
+    float near;
+    float far;
+
     glm::mat4 m_projMatrix;
     Frustum m_frustum;
   };

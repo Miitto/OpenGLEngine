@@ -9,11 +9,15 @@ using std::ifstream;
 namespace engine::mesh {
   Material::Material(const std::string& filename) {
     ifstream file(filename);
+    if (!file.is_open()) {
+      Logger::error("Could not open mesh material file: {}", filename);
+      return;
+    }
 
-    string dataType;
+    std::string dataType;
     file >> dataType;
 
-    if (dataType != "Mat") {
+    if (dataType != "MeshMat") {
       engine::Logger::error(
           "Loading mesh material from file: {}. Not a Mat file", filename);
       return;
@@ -36,17 +40,17 @@ namespace engine::mesh {
     materialLayers.resize(matCount);
 
     for (int i = 0; i < matCount; ++i) {
-      string name;
+      std::string name;
       int count;
 
-      std::getline(file, name);
+      file >> name;
       file >> count;
 
       for (int j = 0; j < count; ++j) {
-        string entryData;
+        std::string entryData;
         file >> entryData;
-        string channel;
-        string file;
+        std::string channel;
+        std::string file;
         size_t split = entryData.find_first_of(':');
         channel = entryData.substr(0, split);
         file = entryData.substr(split + 1);

@@ -212,12 +212,13 @@ namespace engine {
     into = std::vector<glm::mat4>(matCount);
 
     for (int i = 0; i < matCount; ++i) {
-      glm::mat4 mat;
-      for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 4; ++i) {
-          file >> mat[i][j];
+      glm::mat4 mat{};
+      for (int x = 0; x < 4; ++x) {
+        for (int y = 0; y < 4; ++y) {
+          file >> mat[x][y];
         }
       }
+      into[i] = mat;
     }
   }
 
@@ -243,10 +244,12 @@ namespace engine {
     }
   }
 
-  Mesh* Mesh::LoadFromMeshFile(const string& name) {
-    Mesh* mesh = new Mesh();
-
+  std::expected<Mesh, std::string> Mesh::LoadFromMeshFile(const string& name) {
     std::ifstream file(name);
+    if (!file.is_open()) {
+      engine::Logger::error("Failed to open MeshGeometry file: {}", name);
+      return std::unexpected("Failed to open file");
+    }
 
     std::string filetype;
     int fileVersion;
@@ -255,14 +258,14 @@ namespace engine {
 
     if (filetype != "MeshGeometry") {
       engine::Logger::error("File is not a MeshGeometry file!");
-      return nullptr;
+      return std::unexpected("File is not a MeshGeometry file");
     }
 
     file >> fileVersion;
 
     if (fileVersion != 1) {
       engine::Logger::error("MeshGeometry file has incompatible version!");
-      return nullptr;
+      return std::unexpected("File has an incompatible version");
     }
 
     int numMeshes = 0;   // read
@@ -275,6 +278,25 @@ namespace engine {
     file >> numIndices;
     file >> numChunks;
 
+    std::vector<glm::vec3> vertices;
+    std::vector<glm::vec4> colors;
+    std::vector<glm::vec2> textureCoords;
+    std::vector<glm::vec3> normals;
+    std::vector<glm::vec4> tangents;
+
+    std::vector<glm::vec4> weights;
+    std::vector<int> weightIndices;
+
+    std::vector<uint32_t> indices;
+
+    std::vector<glm::mat4> bindPose;
+    std::vector<glm::mat4> inverseBindPose;
+
+    std::vector<std::string> jointNames;
+    std::vector<int> jointParents;
+    std::vector<SubMesh> meshLayers;
+    std::vector<std::string> layerNames;
+
     for (int i = 0; i < numChunks; ++i) {
       int chunkType = (int)GeometryChunkTypes::VPositions;
 
@@ -282,55 +304,81 @@ namespace engine {
 
       switch ((GeometryChunkTypes)chunkType) {
       case GeometryChunkTypes::VPositions:
-        ReadTextFloats(file, mesh->vertices, numVertices);
+        ReadTextFloats(file, vertices, numVertices);
         break;
       case GeometryChunkTypes::VColors:
-        ReadTextFloats(file, mesh->colors, numVertices);
+        ReadTextFloats(file, colors, numVertices);
         break;
       case GeometryChunkTypes::VNormals:
-        ReadTextFloats(file, mesh->normals, numVertices);
+        ReadTextFloats(file, normals, numVertices);
         break;
       case GeometryChunkTypes::VTangents:
-        ReadTextFloats(file, mesh->tangents, numVertices);
+        ReadTextFloats(file, tangents, numVertices);
         break;
       case GeometryChunkTypes::VTex0:
-        ReadTextFloats(file, mesh->textureCoords, numVertices);
+        ReadTextFloats(file, textureCoords, numVertices);
         break;
       case GeometryChunkTypes::Indices:
-        ReadIndices(file, mesh->indices, numIndices);
+        ReadIndices(file, indices, numIndices);
         break;
 
       case GeometryChunkTypes::VWeightValues:
-        ReadTextFloats(file, mesh->weights, numVertices);
+        ReadTextFloats(file, weights, numVertices);
         break;
       case GeometryChunkTypes::VWeightIndices:
-        ReadTextVertexIndices(file, mesh->weightIndices, numVertices);
+        ReadTextVertexIndices(file, weightIndices, numVertices);
         break;
       case GeometryChunkTypes::JointNames:
-        ReadJointNames(file, mesh->jointNames);
+        ReadJointNames(file, jointNames);
         break;
       case GeometryChunkTypes::JointParents:
-        ReadJointParents(file, mesh->jointParents);
+        ReadJointParents(file, jointParents);
         break;
       case GeometryChunkTypes::BindPose:
-        ReadRigPose(file, mesh->bindPose);
+        ReadRigPose(file, bindPose);
         break;
       case GeometryChunkTypes::BindPoseInv:
-        ReadRigPose(file, mesh->inverseBindPose);
+        ReadRigPose(file, inverseBindPose);
         break;
       case GeometryChunkTypes::SubMeshes:
-        ReadSubMeshes(file, numMeshes, mesh->meshLayers);
+        ReadSubMeshes(file, numMeshes, meshLayers);
         break;
       case GeometryChunkTypes::SubMeshNames:
-        ReadSubMeshNames(file, numMeshes, mesh->layerNames);
+        ReadSubMeshNames(file, numMeshes, layerNames);
         break;
       }
     }
 
-    mesh->BufferData();
+#define M(NAME) std::move(NAME)
 
-    return mesh;
+    Mesh mesh(M(vertices), M(colors), M(textureCoords), M(normals), M(tangents),
+              M(weights), M(weightIndices), M(indices), M(bindPose),
+              M(inverseBindPose), M(jointNames), M(jointParents), M(meshLayers),
+              M(layerNames));
+
+    mesh.BufferData();
+
+    return std::expected<engine::Mesh, std::string>(std::move(mesh));
   }
+
+#define SET(NAME) NAME(std::move(NAME))
+
+  Mesh::Mesh(std::vector<glm::vec3>&& vertices, std::vector<glm::vec4>&& colors,
+             std::vector<glm::vec2>&& textureCoords,
+             std::vector<glm::vec3>&& normals,
+             std::vector<glm::vec4>&& tangents,
+             std::vector<glm::vec4>&& weights, std::vector<int>&& weightIndices,
+             std::vector<uint32_t>&& indices, std::vector<glm::mat4>&& bindPose,
+             std::vector<glm::mat4>&& inverseBindPose,
+             std::vector<std::string>&& jointNames,
+             std::vector<int>&& jointParents, std::vector<SubMesh>&& meshLayers,
+             std::vector<std::string>&& layerNames)
+      : SET(vertices), SET(colors), SET(textureCoords), SET(normals),
+        SET(tangents), SET(weights), SET(weightIndices), SET(indices),
+        SET(bindPose), SET(inverseBindPose), SET(jointNames), SET(jointParents),
+        SET(meshLayers), SET(layerNames) {}
+
+#undef SET
 
   int Mesh::GetIndexForJoint(const std::string& name) const {
     for (unsigned int i = 0; i < jointNames.size(); ++i) {

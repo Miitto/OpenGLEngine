@@ -44,7 +44,7 @@ namespace engine {
       inline const glm::vec3& GetScale() const { return m_scale; }
       inline bool isTransparent() const { return (flags & TRANSPARENT) != 0; }
       inline bool shouldDraw() const { return (flags & DRAWABLE) != 0; }
-
+      glm::mat4 getModelMatrix() const;
       void AddChild(const std::shared_ptr<Node>& child);
       void UpdateBoundingRadius();
 

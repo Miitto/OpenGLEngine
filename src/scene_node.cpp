@@ -1,4 +1,5 @@
 #include "engine/scene_node.hpp"
+#include <glm\ext\matrix_transform.hpp>
 
 namespace engine::scene {
   Node::Node(bool transparent, bool shouldDraw) {
@@ -33,6 +34,10 @@ namespace engine::scene {
     for (auto& child : *this) {
       child->render(info, camera);
     }
+  }
+
+  glm::mat4 Node::getModelMatrix() const {
+    return glm::scale(m_transforms.world, GetScale());
   }
 
   void Node::UpdateBoundingRadius() {

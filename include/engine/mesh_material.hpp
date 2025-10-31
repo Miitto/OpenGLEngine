@@ -1,24 +1,20 @@
 #pragma once
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
-
-using std::map;
-using std::string;
-using std::vector;
 
 namespace engine::mesh {
   class MaterialEntry {
   public:
-    std::map<string, string> entries;
+    std::map<std::string, std::string> entries;
 
-    bool GetEntry(const string& name, const string** output) const {
+    std::optional<std::string_view> GetEntry(const std::string& name) const {
       auto i = entries.find(name);
       if (i == entries.end()) {
-        return false;
+        return std::nullopt;
       }
-      *output = &i->second;
-      return true;
+      return i->second;
     }
   };
 

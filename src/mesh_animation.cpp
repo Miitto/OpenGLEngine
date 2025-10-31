@@ -14,13 +14,17 @@ namespace engine::mesh {
 
   Animation::Animation(const std::string& filename) : Animation() {
     std::ifstream file(filename);
+    if (!file.is_open()) {
+      Logger::error("Could not open mesh animation file: {}", filename);
+      return;
+    }
 
     std::string filetype;
     int fileVersion;
 
     file >> filetype;
 
-    if (filetype != "Anim") {
+    if (filetype != "MeshAnim") {
       engine::Logger::error(
           "Loading mesh animation from file: {}. Not a  Anim file", filename);
       return;
@@ -35,8 +39,10 @@ namespace engine::mesh {
     for (unsigned int f = 0; f < frameCount; ++f) {
       for (unsigned int j = 0; j < jointCount; ++j) {
         glm::mat4 mat;
-        for (int i = 0; i < 16; ++i) {
-          file >> mat[i / 4][i % 4];
+        for (int x = 0; x < 4; ++x) {
+          for (int y = 0; y < 4; ++y) {
+            file >> mat[x][y];
+          }
         }
         allJoints.emplace_back(mat);
       }
@@ -51,8 +57,8 @@ namespace engine::mesh {
       throw std::runtime_error("Index out of range");
     }
 
-    const glm::mat4* dataStart = allJoints.data() + frame;
-    const std::span<const glm::mat4> dataSpan(dataStart, jointCount - frame);
+    const glm::mat4* dataStart = allJoints.data() + (frame * jointCount);
+    const std::span<const glm::mat4> dataSpan(dataStart, jointCount);
 
     return dataSpan;
   }

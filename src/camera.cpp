@@ -38,7 +38,7 @@ namespace engine {
 
   PerspectiveCamera::PerspectiveCamera(float nearClip, float farClip,
                                        float aspect, float fov)
-      : Camera(),
+      : Camera(), fov(fov), near(nearClip), far(farClip),
         m_projMatrix(glm::perspective(fov, aspect, nearClip, farClip)),
         m_frustum(matrices.viewProj) {
     buildMatrices();
@@ -96,14 +96,64 @@ namespace engine {
     m_frustum = Frustum(matrices.viewProj);
   }
 
+  void PerspectiveCamera::onResize(int width, int height) {
+    float aspect = static_cast<float>(width) / static_cast<float>(height);
+    m_projMatrix = glm::perspective(fov, aspect, near, far);
+    buildMatrices();
+    writeMatrices();
+    m_frustum = Frustum(matrices.viewProj);
+  }
+
   glm::mat4 Camera::viewMatrix() const {
     return glm::lookAt(position, position + forward(), UP);
   }
 
-  void Camera::CameraDebugUI() const {
+  void Camera::CameraDebugUI() {
     ImGui::Text("Delta Time: %.4f s (%.2f FPS)", delta, 1.0f / delta);
     ImGui::Text("Position: (%.2f, %.2f, %.2f)", position.x, position.y,
                 position.z);
     ImGui::Text("Rotation: (%.2f, %.2f)", rotation.pitch, rotation.yaw);
+
+    bool needSetPolygonMode = false;
+
+    const char* polygonTypes[] = {"Fill", "Wireframe", "Point"};
+
+    if (ImGui::BeginCombo("Polygon Type", polygonTypes[polygonType])) {
+      if (ImGui::Selectable("Fill", polygonType == 0)) {
+        needSetPolygonMode = true;
+        polygonType = 0;
+      }
+      if (ImGui::Selectable("Wireframe", polygonType == 1)) {
+        needSetPolygonMode = true;
+        polygonType = 1;
+      }
+      if (ImGui::Selectable("Point", polygonType == 2)) {
+        needSetPolygonMode = true;
+        polygonType = 2;
+      }
+
+      ImGui::EndCombo();
+    }
+
+    if (ImGui::Checkbox("VSync", &vsync)) {
+      int interval = vsync ? 1 : 0;
+      glfwSwapInterval(interval);
+    }
+
+    if (needSetPolygonMode) {
+      switch (polygonType) {
+      case 0:
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        break;
+      case 1:
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        break;
+      case 2:
+        glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
+        break;
+      default:
+        break;
+      }
+    }
   }
 } // namespace engine
