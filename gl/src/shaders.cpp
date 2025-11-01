@@ -8,6 +8,8 @@ namespace gl {
                                          Shader::Type type) {
     constexpr std::size_t readSize = 4096;
 
+    // For if the shaders are copied to the runtime directory by the build
+    // system
 #ifdef SHADERS_IN_RUNTIME_DIR
     std::string pathStr("./shaders/");
     pathStr.append(path);

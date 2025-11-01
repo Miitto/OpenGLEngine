@@ -28,9 +28,9 @@ namespace engine {
     if (m_imguiWantsKeyboard && action != GLFW_RELEASE) {
       return;
     }
-    KeyState state = action == GLFW_PRESS    ? KeyState::Pressed
-                     : action == GLFW_REPEAT ? KeyState::PressedRepeat
-                                             : KeyState::Released;
+    KeyState state = action == GLFW_PRESS    ? KeyState::Down
+                     : action == GLFW_REPEAT ? KeyState::Held
+                                             : KeyState::Up;
     keyState[key] = state;
     Logger::debug("Key {} is now {}", key, state);
   }
@@ -67,9 +67,9 @@ namespace engine {
     std::vector<int> keys;
     keys.reserve(keyState.size());
     for (auto [key, state] : keyState) {
-      if (state == KeyState::Pressed) {
-        state = KeyState::PressedRepeat;
-      } else if (state == KeyState::Released) {
+      if (state == KeyState::Down) {
+        state = KeyState::Held;
+      } else if (state == KeyState::Up) {
         keys.push_back(key);
       }
     }
@@ -87,14 +87,14 @@ auto fmt::formatter<engine::KeyState>::format(engine::KeyState ks,
 
   std::string_view str = "";
   switch (ks) {
-  case KeyState::Pressed:
-    str = "Pressed";
+  case KeyState::Down:
+    str = "Down";
     break;
-  case KeyState::PressedRepeat:
-    str = "PressedRepeat";
+  case KeyState::Held:
+    str = "Held";
     break;
-  case KeyState::Released:
-    str = "Released";
+  case KeyState::Up:
+    str = "Up";
     break;
   }
   return fmt::formatter<std::string_view>::format(str, ctx);

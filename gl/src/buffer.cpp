@@ -2,14 +2,33 @@
 #include <gl/buffer.hpp>
 
 namespace {
+  /// <summary>
+  /// Bit mask for the persistent mapping bit in a pointer.
+  /// Since only the lower 48 bits are used for addressing, the topmost bits are
+  /// safe to use as flags (so long as they are cleared before being
+  /// dereferenced).
+  /// </summary>
   constexpr intptr_t PERSISTENT_MAP_BIT = 1LL << 63L;
 
+  /// <summary>
+  /// Returns the given pointer with the persistent (topmost) bit set.
+  /// The returned pointer MUST NOT be dereferenced directly.
+  /// </summary>
+  /// <param name="ptr">In ptr</param>
+  /// <returns>In ptr with the persistent (topmost) bit set</returns>
   inline void* setPersistentBit(void* ptr) {
     intptr_t iptr = reinterpret_cast<intptr_t>(ptr);
     iptr |= PERSISTENT_MAP_BIT;
     return reinterpret_cast<void*>(iptr);
   }
 
+  /// <summary>
+  /// Returns the given pointer with the persistent (topmost) bit cleared.
+  /// The returned pointer is safe (in regards to the persistent bit) to
+  /// dereference.
+  /// </summary>
+  /// <param name="ptr">In ptr</param>
+  /// <returns>In ptr with the persistent (topmost) bit cleared.</returns>
   inline void* clearPersistentBit(void* ptr) {
     intptr_t iptr = reinterpret_cast<intptr_t>(ptr);
     iptr &= ~PERSISTENT_MAP_BIT;
@@ -30,6 +49,10 @@ namespace gl {
     if (isValid() && !isPersistent()) {
       buffer->unmap();
     }
+  }
+
+  bool Mapping::isValid() const {
+    return clearPersistentBit(ptr) != nullptr && buffer != nullptr;
   }
 
   bool Mapping::isPersistent() const {
@@ -74,6 +97,15 @@ namespace gl {
 
   const gl::Mapping gl::Buffer::map(MappingBitFlag flags, GLuint offset,
                                     GLuint length) {
+#ifndef NDEBUG
+    if (m_id == 0) {
+      gl::Logger::error("Attempted to map an uninitialized buffer");
+    }
+
+    if (m_mapping != nullptr) {
+      gl::Logger::error("Attempted to map a buffer that is already mapped");
+    }
+#endif
     length = length == std::numeric_limits<GLuint>::max() ? m_size : length;
 
     auto ptr = glMapNamedBufferRange(m_id, offset, length, flags);
@@ -85,15 +117,15 @@ namespace gl {
   }
 
   inline void gl::Buffer::unmap() {
+#ifndef NDEBUG
+    if (m_id == 0) {
+      gl::Logger::error("Attempted to unmap an uninitialized buffer");
+    }
+#endif
     glUnmapNamedBuffer(m_id);
-    m_mapping = {};
+    m_mapping = nullptr;
   }
 
-  /// <summary>
-  /// Retrive the current persistent mapping of the buffer, if any.
-  /// Mapping will be invalid if the buffer is not persistently mapped.
-  /// </summary>
-  /// <returns></returns>
   const gl::Mapping gl::Buffer::getMapping() const {
     // Yucky const_cast, but preferable to needing a mutable buffer to retrieve
     // the mapping

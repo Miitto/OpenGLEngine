@@ -6,6 +6,9 @@
 #include <unordered_map>
 
 namespace engine {
+  /// <summary>
+  /// Holds mouse input data.
+  /// </summary>
   struct Mouse {
     glm::vec2 position{};
     glm::vec2 delta{};
@@ -19,11 +22,34 @@ namespace engine {
     }
   };
 
-  enum class KeyState { Pressed, PressedRepeat, Released };
+  /// <summary>
+  /// Holds the state of a key.
+  /// </summary>
+  enum class KeyState {
+    /// <summary>
+    /// Key was pressed this frame.
+    /// </summary>
+    Down,
+    /// <summary>
+    /// Key was held down this frame.
+    /// </summary>
+    Held,
+    /// <summary>
+    /// Key was released this frame
+    /// </summary>
+    Up
+  };
 
+  /// <summary>
+  /// Holds keyboard and mouse input data.
+  /// </summary>
   class Input {
     engine::Window& m_window;
     Mouse m_mouse{};
+    /// <summary>
+    /// Key states. Absence from the map means Key is released, and was not
+    /// released this frame.
+    /// </summary>
     std::unordered_map<int, KeyState> keyState{};
 
     bool m_imguiWantsKeyboard = false;
@@ -36,10 +62,13 @@ namespace engine {
     }
     ~Input() = default;
 
+    // No copy, due to window user pointer
     Input(const Input&) = delete;
     Input& operator=(const Input&) = delete;
 
     Input(Input&& other) noexcept : m_window(other.m_window) {
+      // If input is moved, we need to update the window user pointer to the new
+      // location
       m_window.setUserPtr(this);
     }
 
@@ -66,35 +95,35 @@ namespace engine {
 
     KeyState getKeyState(int key) const {
       auto it = keyState.find(key);
-      return it == keyState.end() ? KeyState::Released : it->second;
+      return it == keyState.end() ? KeyState::Up : it->second;
     }
     /// <summary>
-    /// Returns if the key is currently held down (Pressed or PressedRepeat)
+    /// Returns if the key is currently pressed
     /// </summary>
     /// <param name="key"></param>
     /// <returns></returns>
     bool isKeyDown(int key) const {
       auto it = keyState.find(key);
-      return it != keyState.end() && (it->second == KeyState::Pressed ||
-                                      it->second == KeyState::PressedRepeat);
+      return it != keyState.end() &&
+             (it->second == KeyState::Down || it->second == KeyState::Held);
     }
     /// <summary>
-    /// Returns if the key is currently up (not pressed)
+    /// Returns if the key is currently not pressed
     /// </summary>
     /// <param name="key"></param>
     /// <returns></returns>
     bool isKeyUp(int key) const {
       auto it = keyState.find(key);
-      return it == keyState.end() || it->second == KeyState::Released;
+      return it == keyState.end() || it->second == KeyState::Up;
     }
     /// <summary>
-    /// Returns if the key was pressed this frame (not held)
+    /// Returns if the key was pressed this frame
     /// </summary>
     /// <param name="key"></param>
     /// <returns></returns>
     bool isKeyPressed(int key) const {
       auto it = keyState.find(key);
-      return it != keyState.end() && it->second == KeyState::Pressed;
+      return it != keyState.end() && it->second == KeyState::Down;
     }
     /// <summary>
     /// Returns if the key was released this frame
@@ -103,9 +132,13 @@ namespace engine {
     /// <returns></returns>
     bool isKeyReleased(int key) const {
       auto it = keyState.find(key);
-      return it != keyState.end() && it->second == KeyState::Released;
+      return it != keyState.end() && it->second == KeyState::Up;
     }
 
+    /// <summary>
+    /// Should be called as the frame is finishing. Clears per-frame input data
+    /// and prepares for the next.
+    /// </summary>
     void frameEnd();
 
     const Mouse& mouse() const { return m_mouse; }

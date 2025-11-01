@@ -8,4 +8,4 @@ target_sources(${PROJECT_NAME}
     logger.cpp
     vao.cpp
     shaders.cpp
-)
+ "attribs.cpp")

@@ -3,8 +3,8 @@ add_library(engine::engine ALIAS ${PROJECT_NAME})
 
 target_sources(${PROJECT_NAME}
   PRIVATE
-  FILE_SET internalHeaders
-  TYPE HEADERS
+    FILE_SET internalHeaders
+    TYPE HEADERS
   PRIVATE
     camera.cpp
     scene_node.cpp
@@ -15,10 +15,13 @@ target_sources(${PROJECT_NAME}
     gui.cpp
     frustum.cpp
     app.cpp
-    mesh.cpp
-    mesh_animation.cpp
-    mesh_material.cpp
- "image.cpp")
+    mesh/mesh_data.cpp
+    mesh/mesh.cpp
+    mesh/mesh_animation.cpp
+    mesh/mesh_material.cpp
+    image.cpp
+    mesh/animated_mesh.cpp
+)
 
 include(stb)
 link_stb(${PROJECT_NAME} PUBLIC)

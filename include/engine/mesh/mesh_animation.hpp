@@ -6,6 +6,9 @@
 #include <span>
 
 namespace engine::mesh {
+  /// <summary>
+  /// Holds animation data loaded from a mesh animation file.
+  /// </summary>
   class Animation {
   public:
     Animation();

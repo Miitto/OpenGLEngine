@@ -1,4 +1,4 @@
-#include "engine/mesh_animation.hpp"
+#include "engine/mesh/mesh_animation.hpp"
 
 #include "logger.hpp"
 #include <fstream>

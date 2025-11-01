@@ -4,6 +4,7 @@
 
 #include "engine/window.hpp"
 #include "logger.hpp"
+#include <gl/attribs.hpp>
 
 namespace {
   void GLAPIENTRY debugMessageCallback(GLenum source, GLenum type, GLuint id,
@@ -123,6 +124,7 @@ namespace engine {
       wm.loadedGl = true;
       Logger::info("Loaded OpenGL version: {}.{}", GLVersion.major,
                    GLVersion.minor);
+      gl::initAttribs();
     } else {
       engine::Logger::error("Failed to load OpenGL");
     }

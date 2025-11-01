@@ -39,8 +39,8 @@ namespace engine {
   PerspectiveCamera::PerspectiveCamera(float nearClip, float farClip,
                                        float aspect, float fov)
       : Camera(), fov(fov), near(nearClip), far(farClip),
-        m_projMatrix(glm::perspective(fov, aspect, nearClip, farClip)),
         m_frustum(matrices.viewProj) {
+    matrices.proj = glm::perspective(fov, aspect, nearClip, farClip);
     buildMatrices();
     writeMatrices();
   }
@@ -98,7 +98,7 @@ namespace engine {
 
   void PerspectiveCamera::onResize(int width, int height) {
     float aspect = static_cast<float>(width) / static_cast<float>(height);
-    m_projMatrix = glm::perspective(fov, aspect, near, far);
+    matrices.proj = glm::perspective(fov, aspect, near, far);
     buildMatrices();
     writeMatrices();
     m_frustum = Frustum(matrices.viewProj);

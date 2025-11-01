@@ -39,7 +39,7 @@ namespace gl {
       return *this;
     }
 
-    inline bool isValid() const { return ptr != nullptr && buffer != nullptr; }
+    bool isValid() const;
 
     operator bool() const { return ptr != nullptr; }
     explicit operator void*() const;
@@ -93,6 +93,25 @@ namespace gl {
       FLUSH_EXPLICIT = GL_MAP_FLUSH_EXPLICIT_BIT
     };
     using UsageBitFlag = Bitflag<Usage>;
+
+    /// <summary>
+    /// Creates a new buffer handle. Buffer will have no storage.
+    /// </summary>
+    inline Buffer() { glCreateBuffers(1, m_id); }
+
+    /// <summary>
+    /// Creates a new buffer with the given storage size and flags.
+    /// </summary>
+    /// <param name="size">Size for the buffer.</param>
+    /// <param name="data">Pointer to copy into the buffer from. Will not copy
+    /// from nullptr.</param>
+    /// <param name="usage">Buffer usage flags.</param>
+    inline Buffer(GLuint size, const void* data = nullptr,
+                  UsageBitFlag usage = Usage::DEFAULT)
+        : Buffer() {
+      m_size = size;
+      glNamedBufferStorage(m_id, size, data, usage);
+    }
 
     /// <summary>
     /// Buffer mapping flags.
@@ -203,35 +222,7 @@ namespace gl {
     /// <param name="name">Name to give the buffer.</param>
     void label(const char name[]) const;
 
-  protected:
-    /// <summary>
-    /// Creates a new buffer handle. Buffer will have no storage.
-    /// </summary>
-    inline Buffer() { glCreateBuffers(1, m_id); }
-
-    /// <summary>
-    /// Creates a new buffer with the given storage size and flags.
-    /// </summary>
-    /// <param name="size">Size for the buffer.</param>
-    /// <param name="data">Pointer to copy into the buffer from. Will not copy
-    /// from nullptr.</param>
-    /// <param name="usage">Buffer usage flags.</param>
-    inline Buffer(GLuint size, const void* data = nullptr,
-                  UsageBitFlag usage = Usage::DEFAULT)
-        : Buffer() {
-      m_size = size;
-      glNamedBufferStorage(m_id, size, data, usage);
-    }
-  };
-
-  /// <summary>
-  /// Buffer that can be bound to various targets like ARRAY_BUFFER,
-  /// ELEMENT_ARRAY_BUFFER, etc.
-  /// Frees the buffer on destruction.
-  /// </summary>
-  class BasicBuffer : public Buffer {
-  public:
-    enum class Target {
+    enum class BasicTarget {
       ARRAY = GL_ARRAY_BUFFER,
       ATOMIC_COUNTER = GL_ATOMIC_COUNTER_BUFFER,
       COPY_READ = GL_COPY_READ_BUFFER,
@@ -247,70 +238,29 @@ namespace gl {
       TRANSFORM_FEEDBACK = GL_TRANSFORM_FEEDBACK_BUFFER,
     };
 
-    using TargetBitFlag = Bitflag<Target>;
-
-    /// <summary>
-    /// Creates a new basic buffer with no storage.
-    /// </summary>
-    BasicBuffer() : Buffer() {}
-    /// <summary>
-    /// Creates a new buffer with the given storage size and flags.
-    /// </summary>
-    /// <param name="size">Size for the buffer.</param>
-    /// <param name="data">Pointer to copy into the buffer from. Will not copy
-    /// from nullptr.</param>
-    /// <param name="usage">Buffer usage flags.</param>
-    BasicBuffer(GLuint size, const void* data = nullptr,
-                UsageBitFlag usage = Usage::DEFAULT)
-        : Buffer(size, data, usage) {}
-    ~BasicBuffer() {}
-    BasicBuffer(BasicBuffer&&) = default;
-    BasicBuffer& operator=(BasicBuffer&&) = default;
+    using BasicTargetBitFlag = Bitflag<BasicTarget>;
 
     /// <summary>
     /// Bind the buffer to the given target.
     /// </summary>
     /// <param name="target">Target to bind to.</param>
-    inline void bind(TargetBitFlag target) const { glBindBuffer(target, m_id); }
-  };
+    inline void bind(BasicTargetBitFlag target) const {
+      glBindBuffer(target, m_id);
+    }
 
-  /// <summary>
-  /// Buffer that can be bound as a storage or uniform buffer. (SSBO or UBO)
-  /// Frees the buffer on destruction.
-  /// </summary>
-  class StorageBuffer : public Buffer {
-  public:
-    /// <summary>
-    /// Creates a new storage buffer with no storage.
-    /// </summary>
-    StorageBuffer() : Buffer() {}
-    /// <summary>
-    /// Creates a new buffer with the given storage size and flags.
-    /// </summary>
-    /// <param name="size">Size for the buffer.</param>
-    /// <param name="data">Pointer to copy into the buffer from. Will not copy
-    /// from nullptr.</param>
-    /// <param name="usage">Buffer usage flags.</param>
-    StorageBuffer(GLuint size, const void* data = nullptr,
-                  UsageBitFlag usage = Usage::DEFAULT)
-        : Buffer(size, data, usage) {}
-    ~StorageBuffer() {}
-    StorageBuffer(StorageBuffer&&) = default;
-    StorageBuffer& operator=(StorageBuffer&&) = default;
-
-    enum class Target {
+    enum class StorageTarget {
       UNIFORM = GL_UNIFORM_BUFFER,
       STORAGE = GL_SHADER_STORAGE_BUFFER
     };
 
-    using TargetBitFlag = Bitflag<Target>;
+    using StorageTargetBitFlag = Bitflag<StorageTarget>;
 
     /// <summary>
     /// Binds the entire buffer to the given target at the given index.
     /// </summary>
     /// <param name="target">Target to bind the buffer to.</param>
     /// <param name="index">Binding to bind the buffer at.</param>
-    inline void bindBase(TargetBitFlag target, GLuint index) const {
+    inline void bindBase(StorageTargetBitFlag target, GLuint index) const {
       glBindBufferBase(target, index, m_id);
     }
     /// <summary>
@@ -322,15 +272,9 @@ namespace gl {
     /// GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT.</param>
     /// <param name="size">Size after
     /// the offset. Must be at least GL_UNIFORM_BLOCK_SIZE_DATA.</param>
-    inline void bindRange(TargetBitFlag target, GLuint index, GLuint offset,
-                          GLuint size) const {
+    inline void bindRange(StorageTargetBitFlag target, GLuint index,
+                          GLuint offset, GLuint size) const {
       glBindBufferRange(target, index, m_id, offset, size);
     }
   };
-
-  /// <summary>
-  /// Generic buffer that can be used both as a basic buffer and a storage
-  /// buffer.
-  /// </summary>
-  class MultiuseBuffer : public BasicBuffer, public StorageBuffer {};
 } // namespace gl
