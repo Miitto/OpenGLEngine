@@ -3,6 +3,12 @@
 #include <concepts>
 #include <type_traits>
 
+/// <summary>
+/// Template class to handle bitflag enums.
+/// Ensures type safety (no implicit conversion from int) while still providing
+/// bitwise operations.
+/// </summary>
+/// <typeparam name="Enum">Bitflag enum</typeparam>
 template <typename Enum>
   requires std::is_enum_v<Enum>
 class Bitflag {

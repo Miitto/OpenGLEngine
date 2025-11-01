@@ -4,6 +4,9 @@
 #include <spdlog/fmt/bundled/format.h>
 
 namespace gl {
+  /// <summary>
+  /// Move only wrapper for OpenGL object IDs.
+  /// </summary>
   class Id {
     GLuint m_id = 0;
 
