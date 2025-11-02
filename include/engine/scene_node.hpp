@@ -1,6 +1,7 @@
 #pragma once
 
 #include "frame_info.hpp"
+#include <engine/frustum.hpp>
 #include <glm/glm.hpp>
 #include <memory>
 
@@ -26,6 +27,11 @@ namespace engine {
       Node(bool transparent, bool shouldDraw);
       virtual ~Node() = default;
 
+      Node(const Node&) = delete;
+      Node& operator=(const Node&) = delete;
+      Node(Node&&) noexcept;
+      Node& operator=(Node&&) noexcept;
+
       inline void SetTransform(const glm::mat4& matrix) {
         m_transforms.local = matrix;
         UpdateTransforms();
@@ -43,14 +49,14 @@ namespace engine {
       inline Node& GetParent() { return *m_parent; }
       inline const glm::vec3& GetScale() const { return m_scale; }
       inline bool isTransparent() const { return (flags & TRANSPARENT) != 0; }
-      inline bool shouldDraw() const { return (flags & DRAWABLE) != 0; }
       glm::mat4 getModelMatrix() const;
       void AddChild(const std::shared_ptr<Node>& child);
       void UpdateBoundingRadius();
 
       virtual void update(const engine::FrameInfo& info);
       virtual void render(const engine::FrameInfo& info,
-                          const engine::Camera& camera);
+                          const engine::Camera& camera,
+                          const engine::Frustum& frustum);
 
       inline float GetBoundingRadius() const { return m_absBoundingRadius; }
       inline void SetBoundingRadius(float radius) {
@@ -60,6 +66,8 @@ namespace engine {
         }
       }
 
+      bool shouldDraw() const { return (flags & DRAWABLE) != 0; }
+      virtual bool shouldRender(const engine::Frustum& frustum) const;
       std::vector<std::shared_ptr<Node>>& GetChildren() { return m_children; }
       std::vector<std::shared_ptr<Node>>::iterator begin() {
         return m_children.begin();

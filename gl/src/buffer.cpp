@@ -95,8 +95,8 @@ namespace gl {
     glNamedBufferStorage(m_id, size, data, flags);
   }
 
-  const gl::Mapping gl::Buffer::map(MappingBitFlag flags, GLuint offset,
-                                    GLuint length) {
+  gl::Mapping gl::Buffer::map(MappingBitFlag flags, GLuint offset,
+                              GLuint length) {
 #ifndef NDEBUG
     if (m_id == 0) {
       gl::Logger::error("Attempted to map an uninitialized buffer");
@@ -138,5 +138,14 @@ namespace gl {
 
   void gl::Buffer::label(const char name[]) const {
     glObjectLabel(GL_BUFFER, m_id, -1, name);
+  }
+
+  void gl::Buffer::copyTo(const gl::Buffer& target, GLuint readOffset,
+                          GLuint writeOffset, GLuint size) const {
+    glCopyNamedBufferSubData(m_id, target.m_id, readOffset, writeOffset, size);
+  }
+
+  void gl::Buffer::subData(GLuint offset, GLuint size, const void* data) const {
+    glNamedBufferSubData(m_id, offset, size, data);
   }
 } // namespace gl

@@ -1,4 +1,5 @@
 #include "engine/scene_node.hpp"
+#include <engine\frustum.hpp>
 #include <glm\ext\matrix_transform.hpp>
 
 namespace engine::scene {
@@ -11,10 +12,41 @@ namespace engine::scene {
     }
   }
 
+  Node::Node(Node&& o) noexcept
+      : m_parent(o.m_parent), flags(o.flags), m_transforms(o.m_transforms),
+        m_scale(o.m_scale), m_children(std::move(o.m_children)),
+        m_boundingRadius(o.m_boundingRadius),
+        m_absBoundingRadius(o.m_absBoundingRadius) {
+    for (auto& m_children : m_children) {
+      m_children->m_parent = this;
+    }
+  }
+
+  Node& Node::operator=(Node&& o) noexcept {
+    if (this != &o) {
+      m_parent = o.m_parent;
+      flags = o.flags;
+      m_transforms = o.m_transforms;
+      m_scale = o.m_scale;
+      m_children = std::move(o.m_children);
+      m_boundingRadius = o.m_boundingRadius;
+      m_absBoundingRadius = o.m_absBoundingRadius;
+      for (auto& m_children : m_children) {
+        m_children->m_parent = this;
+      }
+    }
+
+    return *this;
+  }
+
   void Node::AddChild(const std::shared_ptr<Node>& child) {
     m_children.emplace_back(child);
     child->m_parent = this;
     child->UpdateBoundingRadius();
+  }
+
+  bool Node::shouldRender(const engine::Frustum& frustum) const {
+    return shouldDraw();
   }
 
   void Node::update(const engine::FrameInfo& info) {
@@ -29,10 +61,11 @@ namespace engine::scene {
     }
   }
 
-  void Node::render(const engine::FrameInfo& info,
-                    const engine::Camera& camera) {
+  void Node::render(const engine::FrameInfo& info, const engine::Camera& camera,
+                    const engine::Frustum& frustum) {
     for (auto& child : *this) {
-      child->render(info, camera);
+      if (child->shouldRender(frustum))
+        child->render(info, camera, frustum);
     }
   }
 

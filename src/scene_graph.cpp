@@ -21,7 +21,7 @@ namespace engine::scene {
     };
 
     std::function<void(Node&)> addNodeAndChildren = [&](Node& node) {
-      if (frustum.NodeInFrustum(node)) {
+      if (node.shouldRender(frustum)) {
         if (node.shouldDraw())
           addNodeToList(node);
 

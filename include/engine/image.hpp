@@ -62,7 +62,8 @@ namespace engine {
         return std::unexpected(std::string("Failed to load image from ") +
                                file.data() + "\n" + err);
       }
-      Image img(glm::ivec2(width, height), channels, data);
+      Image img(glm::ivec2(width, height),
+                desiredChannels == 0 ? channels : desiredChannels, data);
       return img;
     }
 

@@ -1,25 +1,27 @@
 #pragma once
 
+#include "engine/frame_info.hpp"
 #include "engine/gui.hpp"
 #include "engine/input.hpp"
 #include "engine/scene_graph.hpp"
 #include "engine/window.hpp"
-#include "frame_info.hpp"
 #include <chrono>
 
 namespace engine {
-
   /// <summary>
   /// Base class for an application using this engine.
   /// Should be run with engine::run(app).
   /// </summary>
   class App {
   protected:
+    static bool initialized;
     engine::Window window;
     engine::Input input;
     engine::gui::Context gui;
     int flags = 0;
     uint32_t frameIndex = 0;
+
+    static std::vector<std::function<void()>> pluginShutdowns;
 
     /// <summary>
     /// Flags representing application options as a bitmask.
@@ -42,6 +44,7 @@ namespace engine {
     /// <param name="height">Window height</param>
     /// <param name="title">Window title</param>
     App(int width, int height, const char title[]);
+    ~App();
 
     /// <summary>
     /// Function called every frame to update application state.
@@ -89,7 +92,35 @@ namespace engine {
 
       ++frameIndex;
     }
+
+    template <typename T> static std::optional<std::string> registerPlugin() {
+      std::optional<std::string> result = T::initialize();
+      if (result.has_value()) {
+        return result;
+      }
+
+      engine::App::pluginShutdowns.push_back(T::shutdown());
+      return std::nullopt;
+    }
   };
+
+  /// <summary>
+  /// Loads the necessary engine plugins that must load BEFORE the app is
+  /// created.
+  /// </summary>
+  /// <returns>Error message if a plugin errored</returns>
+  std::optional<std::string> loadPreInitEnginePlugins();
+
+  /// <summary>
+  /// Loads the necessary engine plugins that must load AFTER the app is
+  /// created.
+  /// </summary>
+  /// <returns>Error message if a plugin errored</returns>
+  std::optional<std::string> loadPostInitEnginePlugins();
+
+  namespace __private {
+    void logStart();
+  }
 
   /// <summary>
   /// Runs the given application.
@@ -100,6 +131,7 @@ namespace engine {
   template <class T>
     requires std::is_base_of<engine::App, T>::value
   inline int run(T& app) {
+    __private::logStart();
     auto time = std::chrono::high_resolution_clock::now();
     while (!app.shouldBail() && !app.shouldClose()) {
       auto now = std::chrono::high_resolution_clock::now();

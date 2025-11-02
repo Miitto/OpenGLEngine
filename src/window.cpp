@@ -3,149 +3,33 @@
 #include <GLFW/glfw3.h>
 
 #include "engine/window.hpp"
+
+#include "engine/glLoader.hpp"
 #include "logger.hpp"
-#include <gl/attribs.hpp>
-
-namespace {
-  void GLAPIENTRY debugMessageCallback(GLenum source, GLenum type, GLuint id,
-                                       GLenum severity, GLsizei length,
-                                       const GLchar* message,
-                                       const void* userParam) {
-    (void)id;
-    (void)length;
-    (void)userParam;
-
-    const char* source_str = "";
-    switch (source) {
-    case GL_DEBUG_SOURCE_API:
-      source_str = "API";
-      break;
-    case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
-      source_str = "WINDOW_SYSTEM";
-      break;
-    case GL_DEBUG_SOURCE_SHADER_COMPILER:
-      source_str = "SHADER_COMPILER";
-      break;
-    case GL_DEBUG_SOURCE_THIRD_PARTY:
-      source_str = "THIRD_PARTY";
-      break;
-    case GL_DEBUG_SOURCE_APPLICATION:
-      source_str = "APPLICATION";
-      break;
-    case GL_DEBUG_SOURCE_OTHER:
-      source_str = "OTHER";
-      break;
-    }
-
-    const char* type_str = "";
-
-    switch (type) {
-    case GL_DEBUG_TYPE_ERROR:
-      type_str = "ERROR";
-      break;
-    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
-      type_str = "DEPRECATED_BEHAVIOR";
-      break;
-
-    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
-      type_str = "UNDEFINED_BEHAVIOR";
-      break;
-
-    case GL_DEBUG_TYPE_PORTABILITY:
-      type_str = "PORTABILITY";
-      break;
-    case GL_DEBUG_TYPE_PERFORMANCE:
-      type_str = "PERFORMANCE";
-      break;
-    case GL_DEBUG_TYPE_MARKER:
-      type_str = "MARKER";
-      break;
-    case GL_DEBUG_TYPE_PUSH_GROUP:
-      type_str = "PUSH_GROUP";
-      break;
-    case GL_DEBUG_TYPE_POP_GROUP:
-      type_str = "POP_GROUP";
-      break;
-    case GL_DEBUG_TYPE_OTHER:
-      type_str = "OTHER";
-      break;
-    }
-
-    switch (severity) {
-    case GL_DEBUG_SEVERITY_HIGH:
-      engine::Logger::error("GL {} ERROR: ({}) | {}", source_str, type_str,
-                            message);
-      break;
-    case GL_DEBUG_SEVERITY_MEDIUM:
-      engine::Logger::warn("GL {} WARNING: ({}) | {}", source_str, type_str,
-                           message);
-      break;
-    case GL_DEBUG_SEVERITY_LOW:
-      engine::Logger::info("GL {} INFO: ({}) | {}", source_str, type_str,
-                           message);
-      break;
-    case GL_DEBUG_SEVERITY_NOTIFICATION:
-      engine::Logger::debug("GL {} DEBUG: ({}) | {}", source_str, type_str,
-                            message);
-      break;
-    default:
-      engine::Logger::debug("GL {} UNKNOWN[{}]: ({}) | {}", source_str,
-                            severity, type_str, message);
-      break;
-    }
-  }
-} // namespace
 
 namespace engine {
-  WindowManager WindowManager::s_instance;
-  WindowManager& WindowManager::get() { return s_instance; }
 
-  WindowManager::WindowManager() {
+  std::optional<std::string> WindowManager::initialize() {
     if (glfwInit()) {
-      engine::Logger::debug("Window Manager initialized");
+      engine::Logger::info("GLFW initialized");
 #ifndef NDEBUG
       glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
 #endif
-    }
-  }
-  WindowManager::~WindowManager() { glfwTerminate(); }
-
-  int WindowManager::loadGl() {
-    auto& wm = WindowManager::get();
-    if (wm.loadedGl) {
-      engine::Logger::warn("Attempted to load OpenGL multiple times");
-      return -1;
-    }
-
-    int version =
-        gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress));
-
-    if (version != 0) {
-      wm.loadedGl = true;
-      Logger::info("Loaded OpenGL version: {}.{}", GLVersion.major,
-                   GLVersion.minor);
-      gl::initAttribs();
     } else {
-      engine::Logger::error("Failed to load OpenGL");
+      return std::string("Failed to initialize GLFW");
     }
+    GlLoader::glVersion(4, 6);
 
-#ifndef NDEBUG
-    glEnable(GL_DEBUG_OUTPUT);
-    // Allows to breakpoint on GL errors and have the callstack be correct
-    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-    glDebugMessageCallback(debugMessageCallback, 0);
-    engine::Logger::debug("Attached debug message callback");
-#endif
+    engine::Logger::info("Window Manager initialized");
 
-    return version;
+    return std::nullopt;
   }
 
-  void WindowManager::glMajor(int major) const {
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, major);
-  }
-
-  void WindowManager::glMinor(int minor) const {
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, minor);
+  std::function<void()> WindowManager::shutdown() {
+    return []() {
+      glfwTerminate();
+      engine::Logger::info("Window Manager terminated");
+    };
   }
 
   Window::Window(int width, int height, const char* title, bool makeCurrent) {
@@ -157,13 +41,7 @@ namespace engine {
 
   Window::~Window() { glfwDestroyWindow(window); }
 
-  void Window::makeCurrent() const {
-    glfwMakeContextCurrent(window);
-    auto& wm = WindowManager::get();
-    if (!wm.loadedGl) {
-      WindowManager::loadGl();
-    }
-  }
+  void Window::makeCurrent() const { glfwMakeContextCurrent(window); }
 
   bool Window::shouldClose() const { return glfwWindowShouldClose(window); }
   void Window::swapBuffers() const { glfwSwapBuffers(window); }

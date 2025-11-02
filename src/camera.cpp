@@ -138,6 +138,7 @@ namespace engine {
     if (ImGui::Checkbox("VSync", &vsync)) {
       int interval = vsync ? 1 : 0;
       glfwSwapInterval(interval);
+      engine::Logger::info("VSync {}", vsync ? "Enabled" : "Disabled");
     }
 
     if (needSetPolygonMode) {

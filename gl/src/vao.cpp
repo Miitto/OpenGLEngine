@@ -39,4 +39,12 @@ namespace gl {
       glVertexArrayAttribBinding(m_id, index, bufferIndex);
     }
   }
+
+  void gl::Vao::attribDivisor(GLuint index, GLuint divisor) const {
+    glVertexArrayBindingDivisor(m_id, index, divisor);
+  }
+
+  void gl::Vao::label(const char name[]) const {
+    glObjectLabel(GL_VERTEX_ARRAY, m_id, -1, name);
+  }
 } // namespace gl

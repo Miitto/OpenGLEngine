@@ -1,7 +1,6 @@
 #pragma once
 
 #include "plane.hpp"
-#include "scene_node.hpp"
 #include <glm/glm.hpp>
 
 namespace engine {
@@ -55,17 +54,6 @@ namespace engine {
     /// <returns>Whether the sphere is inside the frustum</returns>
     inline bool SphereInFrustum(const glm::vec3& centre, float radius) const {
       return m_planes.SphereInAllPlanes(centre, radius);
-    }
-
-    /// <summary>
-    /// Returns true if a scene node is inside the frustum.
-    /// </summary>
-    /// <param name="node">Scene node</param>
-    /// <returns>Whether the node is inside the frustum</returns>
-    inline bool NodeInFrustum(const engine::scene::Node& node) const {
-      auto& world = node.GetTransforms().world;
-      auto pos = world[3];
-      return SphereInFrustum(pos, node.GetBoundingRadius());
     }
 
   protected:

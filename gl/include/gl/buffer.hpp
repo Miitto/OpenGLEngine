@@ -49,6 +49,28 @@ namespace gl {
     void write(const void* data, GLuint length, GLuint offset = 0) const;
   };
 
+  class MappingRef {
+    const Mapping& mapping;
+    const GLuint offset = 0;
+
+  public:
+    MappingRef(const Mapping& mapping) : mapping(mapping) {}
+    MappingRef(const Mapping& mapping, GLuint offset)
+        : mapping(mapping), offset(offset) {}
+
+    inline bool isValid() const { return mapping.isValid(); }
+    inline operator bool() const { return isValid(); }
+    inline void* get() const {
+      auto ptr = reinterpret_cast<char*>(mapping.get());
+      return ptr + offset;
+    }
+    inline bool isPersistent() const { return mapping.isPersistent(); }
+    inline void write(const void* data, GLuint length,
+                      GLuint writeOffset = 0) const {
+      mapping.write(data, length, offset + writeOffset);
+    }
+  };
+
   /// <summary>
   /// Generic buffer object.
   /// Stores the size of the buffer.
@@ -61,6 +83,19 @@ namespace gl {
     void* m_mapping = nullptr;
 
   public:
+    constexpr inline static GLuint roundToAlignment(GLuint size,
+                                                    GLuint alignment) {
+#ifndef NDEBUG
+      if (alignment == 0)
+        throw std::invalid_argument("Alignment cannot be zero");
+#endif
+
+      GLuint remainder = size % alignment;
+      if (remainder == 0)
+        return size;
+      return size + (alignment - remainder);
+    }
+
     /// <summary>
     /// Buffer usage flags.
     /// </summary>
@@ -202,8 +237,8 @@ namespace gl {
     /// <param name="offset">Offset into the buffer to map. Defaults to
     /// 0.</param> <param name="length">Size of the buffer to map. Defaults to
     /// max.</param> <returns></returns>
-    const gl::Mapping map(MappingBitFlag flags, GLuint offset = 0,
-                          GLuint length = std::numeric_limits<GLuint>::max());
+    gl::Mapping map(MappingBitFlag flags, GLuint offset = 0,
+                    GLuint length = std::numeric_limits<GLuint>::max());
     /// <summary>
     /// Unmaps the buffer.
     /// </summary>
@@ -221,6 +256,26 @@ namespace gl {
     /// </summary>
     /// <param name="name">Name to give the buffer.</param>
     void label(const char name[]) const;
+
+    /// <summary>
+    /// Write data from one buffer to another.
+    /// Allows for writes to an immutable buffer.
+    /// </summary>
+    /// <param name="target">Buffer to write to</param>
+    /// <param name="readOffset">Offset into this buffer to read from</param>
+    /// <param name="writeOffset">Offset into the target buffer to write
+    /// to</param> <param name="size">Size to copy over</param>
+    void copyTo(const gl::Buffer& target, GLuint readOffset, GLuint writeOffset,
+                GLuint size) const;
+
+    /// <summary>
+    /// Write to this buffer. Must have been created with
+    /// gl::Buffer::Usage::DYNAMIC
+    /// </summary>
+    /// <param name="offset">Offset to write at</param>
+    /// <param name="size">Size to write</param>
+    /// <param name="data">Pointer to the data to write</param>
+    void subData(GLuint offset, GLuint size, const void* data) const;
 
     enum class BasicTarget {
       ARRAY = GL_ARRAY_BUFFER,

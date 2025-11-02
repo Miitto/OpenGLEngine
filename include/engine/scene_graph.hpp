@@ -1,8 +1,9 @@
 #pragma once
 
 #include "camera.hpp"
+#include "engine/scene_node.hpp"
 #include "frame_info.hpp"
-#include "scene_node.hpp"
+#include <engine/frustum.hpp>
 
 namespace engine {
   namespace scene {
@@ -51,12 +52,13 @@ namespace engine {
         std::vector<Pair> transparent;
 
         inline void render(const engine::FrameInfo& info,
-                           const engine::Camera& camera) const {
+                           const engine::Camera& camera,
+                           const engine::Frustum& frustum) const {
           for (const auto node : opaque) {
-            node.node->render(info, camera);
+            node.node->render(info, camera, frustum);
           }
           for (const auto node : transparent) {
-            node.node->render(info, camera);
+            node.node->render(info, camera, frustum);
           }
         }
       };
@@ -70,9 +72,10 @@ namespace engine {
       }
 
       inline void render(const engine::FrameInfo& info,
-                         const engine::Camera& camera) {
+                         const engine::Camera& camera,
+                         const engine::Frustum& frustum) {
         NodeLists lists = BuildNodeLists(camera);
-        lists.render(info, camera);
+        lists.render(info, camera, frustum);
       }
 
     protected:

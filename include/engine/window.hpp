@@ -2,37 +2,24 @@
 
 struct GLFWwindow;
 
+#include <functional>
+#include <optional>
+#include <string>
+
 namespace engine {
   /// <summary>
   /// Window Manager that manages the GLFW state. Should be created before any
   /// windows and should persist to after the last one closes.
   /// </summary>
   class WindowManager {
-    bool loadedGl = false;
 
-    static engine::WindowManager s_instance;
-
-    static int loadGl();
-
-    WindowManager();
+    static bool initGlfw();
 
   public:
-    WindowManager(const WindowManager&) = delete;
-    WindowManager& operator=(const WindowManager&) = delete;
-    ~WindowManager();
+    WindowManager() = delete;
 
-    static WindowManager& get();
-
-    bool isGlLoaded() { return loadedGl; }
-
-    void glMajor(int major) const;
-    void glMinor(int minor) const;
-    void glVersion(int major, int minor) const {
-      glMajor(major);
-      glMinor(minor);
-    }
-
-    friend class Window;
+    static std::optional<std::string> initialize();
+    static std::function<void()> shutdown();
   };
 
   /// <summary>

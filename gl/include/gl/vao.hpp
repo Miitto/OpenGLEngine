@@ -83,6 +83,10 @@ namespace gl {
     void bindAttribs(GLuint bufferIndex,
                      std::initializer_list<GLuint> attribIndices) const;
 
+    void attribDivisor(GLuint index, GLuint divisor) const;
+
+    void label(const char name[]) const;
+
     /// <summary>
     ///  RAII guard for unbinding a VAO.
     /// </summary>

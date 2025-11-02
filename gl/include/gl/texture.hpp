@@ -5,6 +5,24 @@
 #include <glm/glm.hpp>
 
 namespace gl {
+  using RawTextureHandle = GLuint64;
+
+  class TextureHandle {
+  public:
+    inline TextureHandle(RawTextureHandle handle) : _handle(handle) {}
+
+    void use();
+    void unuse();
+
+    inline const RawTextureHandle& handle() const { return _handle; }
+    inline operator RawTextureHandle() const { return _handle; }
+
+    inline bool isValid() const { return _handle != 0; }
+
+  protected:
+    RawTextureHandle _handle;
+  };
+
   /// <summary>
   /// RAII 2D Texture wrapper
   /// </summary>
@@ -21,12 +39,13 @@ namespace gl {
   private:
     gl::Id m_id = 0;
     gl::Texture::Size m_size{};
+    gl::TextureHandle _handle = 0;
 
   public:
     /// <summary>
     /// Creates a new texture without storage.
     /// </summary>
-    Texture() { glCreateTextures(GL_TEXTURE_2D, 1, m_id); }
+    inline Texture() { glCreateTextures(GL_TEXTURE_2D, 1, m_id); }
     /// <summary>
     /// Creates a new texture with the given size, format, internal format
     /// </summary>
@@ -35,18 +54,15 @@ namespace gl {
     /// <param name="internalFormat">Internal Format (RGBA8)</param>
     /// <param name="data">Pointer to texture data</param>
     Texture(gl::Texture::Size size, GLenum format, GLenum internalFormat,
-            void* data) {
-      glCreateTextures(GL_TEXTURE_2D, 1, m_id);
+            void* data);
 
-      storage(1, internalFormat, size);
-      subImage(0, 0, 0, size.width, size.height, format, GL_UNSIGNED_BYTE,
-               data);
-    }
+    inline bool isValid() const { return m_id != 0; }
+
     /// <summary>
     /// Returns the texture ID.
     /// </summary>
     /// <returns>Texture handle</returns>
-    const gl::Id& id() const { return m_id; }
+    inline const gl::Id& id() const { return m_id; }
 
     /// <summary>
     /// Labels the texture for debugging purposes.
@@ -60,91 +76,54 @@ namespace gl {
     /// Creates mipmaps for the texture.
     /// </summary>
     inline void generateMipmap() const { glGenerateTextureMipmap(m_id); }
-    /// <summary>
-    /// Returns the texture handle for use with bindless textures.
-    /// </summary>
-    /// <returns></returns>
-    inline GLuint64 getHandle() const { return glGetTextureHandleARB(m_id); }
-    /// <summary>
-    /// Makes the texture handle resident for bindless textures.
-    /// </summary>
-    inline void makeResident() const { makeHandleResident(getHandle()); }
-    /// <summary>
-    /// Makes the texture handle non-resident for bindless textures.
-    /// </summary>
-    inline void makeNonResident() const { makeHandleNonResident(getHandle()); }
+
+    inline void createHandle() {
+      RawTextureHandle rawHandle = glGetTextureHandleARB(m_id);
+      _handle = TextureHandle(rawHandle);
+    }
 
     /// <summary>
-    /// Makes the given texture handle resident.
+    /// Returns the texture handle for use with bindless textures.
+    /// Should not be written to a buffer, use rawHandle() for that.
+    /// createHandle() must be called first.
     /// </summary>
-    /// <param name="handle">Texture handle</param>
-    inline static void makeHandleResident(GLuint64 handle) {
-      glMakeTextureHandleResidentARB(handle);
-    }
+    /// <returns>TextureHandle of this texture</returns>
+    inline TextureHandle handle() const { return _handle; }
     /// <summary>
-    /// Makes the given texture handle non-resident.
+    /// Returns the raw texture handle for use with bindless textures.
+    /// createHandle() must be called first.
     /// </summary>
-    /// <param name="handle">Texture handle</param>
-    inline static void makeHandleNonResident(GLuint64 handle) {
-      glMakeTextureHandleNonResidentARB(handle);
-    }
+    /// <returns>Raw Texture handle to be written</returns>
+    inline RawTextureHandle rawHandle() const { return _handle.handle(); }
 
     /// <summary>
     /// Converts a number of channels to an OpenGL format.
     /// </summary>
     /// <param name="channels">Number of channels</param>
     /// <returns>Texture format</returns>
-    constexpr inline static GLenum formatFromChannels(int channels) {
-      switch (channels) {
-      case 1:
-        return GL_RED;
-      case 2:
-        return GL_RG;
-      case 3:
-        return GL_RGB;
-      case 4:
-        return GL_RGBA;
-      default:
-        return GL_INVALID_ENUM;
-      }
-    }
-
+    static GLenum formatFromChannels(int channels);
     /// <summary>
     /// Converts a number of channels to an OpenGL internal format.
     /// </summary>
     /// <param name="channels">Number of channels</param>
     /// <returns>Internal texture format</returns>
-    constexpr inline static GLenum internalFormatFromChannels(int channels) {
-      switch (channels) {
-      case 1:
-        return GL_R8;
-      case 2:
-        return GL_RG8;
-      case 3:
-        return GL_RGB8;
-      case 4:
-        return GL_RGBA8;
-      default:
-        return GL_INVALID_ENUM;
-      }
-    }
-
+    static GLenum internalFormatFromChannels(int channels);
     /// <summary>
     /// Binds the texture to the given texture unit.
     /// </summary>
     /// <param name="unit">Unit to bind to</param>
-    void bind(uint8_t unit) const { glBindTextureUnit(unit, m_id); }
+    inline void bind(uint8_t unit) const { glBindTextureUnit(unit, m_id); }
     /// <summary>
     /// Unbinds all textures from the given texture unit.
     /// </summary>
     /// <param name="unit"></param>
-    static void unbind(GLenum unit) { glBindTextureUnit(unit, 0); }
+    inline static void unbind(GLenum unit) { glBindTextureUnit(unit, 0); }
     /// <summary>
     /// Sets a texture parameter.
     /// </summary>
     /// <param name="pname">Parameter name</param>
     /// <param name="param">Parameter value</param>
-    void setParameter(GLenum pname, GLint param) const {
+    inline void setParameter(GLenum pname, GLint param) const {
       glTextureParameteri(m_id, pname, param);
     }
     /// <summary>
@@ -154,10 +133,7 @@ namespace gl {
     /// <param name="level">Texture level</param>
     /// <param name="internalformat">Internal texture format</param>
     /// <param name="size">Texture dimensions</param>
-    void storage(GLint level, GLenum internalformat, gl::Texture::Size size) {
-      m_size = size;
-      glTextureStorage2D(m_id, level, internalformat, size.width, size.height);
-    }
+    void storage(GLint level, GLenum internalformat, gl::Texture::Size size);
     /// <summary>
     /// Writes pixels to a sub-region of the texture.
     /// </summary>
@@ -171,16 +147,12 @@ namespace gl {
     /// <param name="pixels">Pointer to pixel data</param>
     void subImage(GLint level, GLint xoffset, GLint yoffset, GLsizei width,
                   GLsizei height, GLenum format, GLenum type,
-                  const void* pixels) const {
-      glTextureSubImage2D(m_id, level, xoffset, yoffset, width, height, format,
-                          type, pixels);
-    }
-
+                  const void* pixels) const;
     /// <summary>
     /// Get the texture dimensions.
     /// </summary>
     /// <returns>Texture dimensions</returns>
-    const gl::Texture::Size& size() const { return m_size; }
+    inline const gl::Texture::Size& size() const { return m_size; }
   };
 
   class Texture2DMultiSample {
