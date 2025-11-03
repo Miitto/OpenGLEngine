@@ -2,10 +2,44 @@
 #include "engine/glLoader.hpp"
 #include "imgui/imgui.h"
 #include "logger.hpp"
+#include <gl/gl.hpp>
 
 namespace {
   bool engineInitialized = false;
-}
+
+  engine::App::GBuffers createGBuffers(engine::Window::Size size) {
+    gl::Texture::Size s = {size.width, size.height};
+    engine::App::GBuffers gbuffers;
+    gbuffers.diffuse = gl::Texture();
+    gbuffers.diffuse.label("GBuffer Diffuse");
+    gbuffers.diffuse.storage(1, GL_RGBA8, s);
+
+    gbuffers.normal = gl::Texture();
+    gbuffers.normal.label("GBuffer Normal");
+    gbuffers.normal.storage(1, GL_RGBA8, s);
+
+    gbuffers.material = gl::Texture();
+    gbuffers.material.label("GBuffer Material");
+    gbuffers.material.storage(1, GL_RGBA8, s);
+
+    gbuffers.depth = gl::Texture();
+    gbuffers.depth.label("GBuffer Depth");
+    gbuffers.depth.storage(1, GL_DEPTH_COMPONENT24, s);
+
+    gbuffers.stencil = gl::Texture();
+    gbuffers.stencil.label("GBuffer Stencil");
+    gbuffers.stencil.storage(1, GL_STENCIL_INDEX8, s);
+
+    gbuffers.fbo = gl::Framebuffer();
+    gbuffers.fbo.attachTexture(GL_COLOR_ATTACHMENT0, gbuffers.diffuse);
+    gbuffers.fbo.attachTexture(GL_COLOR_ATTACHMENT1, gbuffers.normal);
+    gbuffers.fbo.attachTexture(GL_COLOR_ATTACHMENT2, gbuffers.material);
+    gbuffers.fbo.attachTexture(GL_DEPTH_ATTACHMENT, gbuffers.depth);
+    gbuffers.fbo.attachTexture(GL_STENCIL_ATTACHMENT, gbuffers.stencil);
+
+    return gbuffers;
+  }
+} // namespace
 
 namespace engine {
   bool App::initialized = false;
@@ -24,6 +58,8 @@ namespace engine {
       throw std::runtime_error(err.value());
     }
 
+    gbuffers = createGBuffers(windowSize);
+
     initialized = true;
   }
 
@@ -31,6 +67,10 @@ namespace engine {
     for (auto& shutdown : pluginShutdowns) {
       shutdown();
     }
+  }
+
+  void App::onWindowResize(engine::Window::Size newSize) {
+    gbuffers = createGBuffers(newSize);
   }
 
   void App::update(const FrameInfo& frame) {

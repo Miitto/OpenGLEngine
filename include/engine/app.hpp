@@ -111,6 +111,8 @@ namespace engine {
       gl::Texture normal;
       gl::Texture material;
       gl::Texture depth;
+      gl::Texture stencil;
+      gl::Framebuffer fbo;
     };
 
   protected:
