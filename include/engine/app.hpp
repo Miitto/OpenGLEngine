@@ -14,15 +14,6 @@ namespace engine {
   /// </summary>
   class App {
   protected:
-    static bool initialized;
-    engine::Window window;
-    engine::Input input;
-    engine::gui::Context gui;
-    int flags = 0;
-    uint32_t frameIndex = 0;
-
-    static std::vector<std::function<void()>> pluginShutdowns;
-
     /// <summary>
     /// Flags representing application options as a bitmask.
     /// </summary>
@@ -80,6 +71,8 @@ namespace engine {
     /// <returns>Frame index</returns>
     uint32_t getFrameIndex() const { return frameIndex; }
 
+    virtual void onWindowResize(engine::Window::Size newSize);
+
     /// <summary>
     /// Called after rendering each frame.
     /// Handles post-render tasks such as rendering the UI, swapping buffers,
@@ -102,6 +95,28 @@ namespace engine {
       engine::App::pluginShutdowns.push_back(T::shutdown());
       return std::nullopt;
     }
+
+  protected:
+    static bool initialized;
+    engine::Window window;
+    engine::Input input;
+    engine::gui::Context gui;
+    int flags = 0;
+    uint32_t frameIndex = 0;
+    engine::Window::Size windowSize;
+
+  public:
+    struct GBuffers {
+      gl::Texture diffuse;
+      gl::Texture normal;
+      gl::Texture material;
+      gl::Texture depth;
+    };
+
+  protected:
+    GBuffers gbuffers;
+
+    static std::vector<std::function<void()>> pluginShutdowns;
   };
 
   /// <summary>

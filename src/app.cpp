@@ -12,7 +12,8 @@ namespace engine {
   std::vector<std::function<void()>> App::pluginShutdowns = {};
 
   App::App(int width, int height, const char title[])
-      : window({width, height, title, true}), input(window), gui(window) {
+      : window({width, height, title, true}), input(window), gui(window),
+        windowSize(window.size()) {
     if (initialized) {
       Logger::critical("Engine already initialized, exiting");
       throw std::runtime_error("Engine was already initialized");
@@ -41,6 +42,12 @@ namespace engine {
     gui.newFrame();
     input.imGuiWantsMouse(gui.io().WantCaptureMouse);
     input.imGuiWantsKeyboard(gui.io().WantCaptureKeyboard);
+
+    auto ws = window.size();
+    if (ws != windowSize) {
+      onWindowResize(ws);
+      windowSize = ws;
+    }
   }
 
 #define LOAD_PLUGIN(T)                                                         \
