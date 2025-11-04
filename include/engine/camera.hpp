@@ -30,6 +30,7 @@ namespace engine {
       glm::mat4 invView = glm::mat4(1.0);
       glm::mat4 invProj = glm::mat4(1.0);
       glm::mat4 invViewProj = glm::mat4(1.0);
+      glm::vec2 resolution = glm::vec2(1.0);
     };
 
     /// <summary>
@@ -57,7 +58,7 @@ namespace engine {
     /// </summary>
     /// <param name="width">New viewport width</param>
     /// <param name="height">New viewport height</param>
-    virtual void onResize(int width, int height) = 0;
+    virtual void onResize(int width, int height);
 
     inline const Matrices& GetMatrices() const { return matrices; }
     inline const glm::vec3& GetPosition() const { return position; }
@@ -139,14 +140,14 @@ namespace engine {
     /// first if required.
     /// </summary>
     inline void writeMatrices() const {
-      auto& mapping = matrixBuffer.getMapping();
-      mapping.write(&matrices, sizeof(Matrices));
+      matrixMapping.write(&matrices, sizeof(Matrices) - sizeof(glm::vec2));
     }
 
     Rotation rotation;
     glm::vec3 position;
     Matrices matrices;
     gl::Buffer matrixBuffer;
+    gl::Mapping matrixMapping;
     float delta = 0.0;
     int polygonType = 0;
     bool vsync = true;
@@ -189,6 +190,10 @@ namespace engine {
     /// </summary>
     /// <returns>Camera's projection matrix</returns>
     glm::mat4 projMatrix() const override { return matrices.proj; }
+
+    inline const float getNear() const { return near; }
+    inline const float getFar() const { return far; }
+    inline const float getFov() const { return fov; }
 
   protected:
     float fov;

@@ -40,7 +40,7 @@ namespace gl {
     }
   }
 
-  void gl::Vao::attribDivisor(GLuint index, GLuint divisor) const {
+  void gl::Vao::bufferDivisor(GLuint index, GLuint divisor) const {
     glVertexArrayBindingDivisor(m_id, index, divisor);
   }
 

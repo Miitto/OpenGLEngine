@@ -48,15 +48,29 @@ namespace engine {
           float dist;
         };
 
+        std::vector<Pair> lit;
         std::vector<Pair> opaque;
         std::vector<Pair> transparent;
 
-        inline void render(const engine::FrameInfo& info,
-                           const engine::Camera& camera,
-                           const engine::Frustum& frustum) const {
+        inline void renderLit(const engine::FrameInfo& info,
+                              const engine::Camera& camera,
+                              const engine::Frustum& frustum) const {
+          for (const auto node : lit) {
+            node.node->render(info, camera, frustum);
+          }
+        }
+
+        inline void renderOpaque(const engine::FrameInfo& info,
+                                 const engine::Camera& camera,
+                                 const engine::Frustum& frustum) const {
           for (const auto node : opaque) {
             node.node->render(info, camera, frustum);
           }
+        }
+
+        inline void renderTransparent(const engine::FrameInfo& info,
+                                      const engine::Camera& camera,
+                                      const engine::Frustum& frustum) const {
           for (const auto node : transparent) {
             node.node->render(info, camera, frustum);
           }
@@ -69,13 +83,6 @@ namespace engine {
         for (auto& root : m_roots) {
           root->update(info);
         }
-      }
-
-      inline void render(const engine::FrameInfo& info,
-                         const engine::Camera& camera,
-                         const engine::Frustum& frustum) {
-        NodeLists lists = BuildNodeLists(camera);
-        lists.render(info, camera, frustum);
       }
 
     protected:

@@ -22,7 +22,8 @@ namespace gl {
       FRAGMENT = GL_FRAGMENT_SHADER,
       GEOMETRY = GL_GEOMETRY_SHADER,
       TESS_CONTROL = GL_TESS_CONTROL_SHADER,
-      TESS_EVAL = GL_TESS_EVALUATION_SHADER
+      TESS_EVAL = GL_TESS_EVALUATION_SHADER,
+      COMPUTE = GL_COMPUTE_SHADER
     };
 
     Shader(Type type, std::string_view source);

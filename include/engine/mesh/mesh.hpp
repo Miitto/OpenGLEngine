@@ -27,9 +27,11 @@ _-_-_-_-_-_-_-""  ""
 #include <string>
 #include <vector>
 
-namespace engine {
-
-  // TODO: Mesh class that uses an externally owned buffer with an offset
+namespace engine::mesh {
+  struct TextureSet {
+    gl::RawTextureHandle diffuse;
+    gl::RawTextureHandle bump = 0;
+  };
 
   /// <summary>
   /// Utilities to do with meshes.
@@ -189,4 +191,4 @@ namespace engine {
     std::vector<mesh::SubMesh> meshLayers;
     std::vector<std::string> layerNames;
   };
-} // namespace engine
+} // namespace engine::mesh

@@ -16,15 +16,22 @@ namespace engine {
       enum FlagBits {
         TRANSPARENT = 1 << 0,
         DRAWABLE = 1 << 1,
+        LIT = 1 << 2,
       };
 
     public:
+      enum class RenderType {
+        OPAQUE,
+        TRANSPARENT,
+        LIT,
+      };
+
       struct Transforms {
         glm::mat4 local = {1.0};
         glm::mat4 world = {1.0};
       };
 
-      Node(bool transparent, bool shouldDraw);
+      Node(RenderType renderType, bool shouldDraw);
       virtual ~Node() = default;
 
       Node(const Node&) = delete;
@@ -48,7 +55,17 @@ namespace engine {
       inline const Node& GetParent() const { return *m_parent; }
       inline Node& GetParent() { return *m_parent; }
       inline const glm::vec3& GetScale() const { return m_scale; }
-      inline bool isTransparent() const { return (flags & TRANSPARENT) != 0; }
+
+      inline RenderType getRenderType() const {
+        if ((flags & LIT) != 0) {
+          return RenderType::LIT;
+        } else if ((flags & TRANSPARENT) != 0) {
+          return RenderType::TRANSPARENT;
+        } else {
+          return RenderType::OPAQUE;
+        }
+      }
+
       glm::mat4 getModelMatrix() const;
       void AddChild(const std::shared_ptr<Node>& child);
       void UpdateBoundingRadius();

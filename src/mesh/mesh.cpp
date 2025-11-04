@@ -3,7 +3,7 @@
 #include "logger.hpp"
 #include <gl/structs.hpp>
 
-namespace engine {
+namespace engine::mesh {
   Mesh::Mesh(const mesh::Data& meshData)
       : meshLayers(meshData.meshLayers()), layerNames(meshData.layerNames()) {}
 
@@ -24,7 +24,7 @@ namespace engine {
     }
     mesh::SubMesh m = meshLayers[i];
 
-    vao.bind();
+    auto bg = vao.bindGuard();
     if (indexOffset != 0) {
       auto vertexOffset = m.start * sizeof(unsigned int);
 
@@ -33,7 +33,6 @@ namespace engine {
     } else {
       glDrawArrays(type, m.start, m.count); // Draw the triangle!
     }
-    vao.unbind();
   }
 
   void Mesh::prepSubmeshesForBatch(const gl::Mapping& indirectBufferMapping,
@@ -63,7 +62,7 @@ namespace engine {
       return;
     }
 
-    vao.bind();
+    auto bg = vao.bindGuard();
     if (jointBuffer != 0) {
       glBindBufferRange(static_cast<GLenum>(gl::Buffer::StorageTarget::STORAGE),
                         jointBindPoint, jointBuffer, jointOffset, jointSize);
@@ -85,7 +84,7 @@ namespace engine {
   void Mesh::bindInstanceBuffer(GLuint index, const gl::Buffer& buffer,
                                 GLuint offset, GLuint stride, GLuint divisor) {
     vao.bindVertexBuffer(index, buffer.id(), offset, stride);
-    vao.attribDivisor(index, divisor);
+    vao.bufferDivisor(index, divisor);
   }
 
   GLuint Mesh::vertexDataSize(const mesh::Data& meshData) {
@@ -272,4 +271,4 @@ namespace engine {
     }
     return false;
   }
-} // namespace engine
+} // namespace engine::mesh

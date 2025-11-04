@@ -13,10 +13,16 @@ namespace engine::scene {
       glm::vec3 nodePos(node.GetTransforms().world[3]);
       auto relCamPos = nodePos - camera.GetPosition();
       float dist = glm::dot(relCamPos, relCamPos); // Squared distance
-      if (node.isTransparent()) {
-        lists.transparent.emplace_back(&node, dist);
-      } else {
+      switch (node.getRenderType()) {
+      case Node::RenderType::LIT:
+        lists.lit.emplace_back(&node, dist);
+        break;
+      case Node::RenderType::OPAQUE:
         lists.opaque.emplace_back(&node, dist);
+        break;
+      case Node::RenderType::TRANSPARENT:
+        lists.transparent.emplace_back(&node, dist);
+        break;
       }
     };
 
@@ -39,6 +45,7 @@ namespace engine::scene {
       return a.dist < b.dist;
     };
 
+    std::sort(lists.lit.begin(), lists.lit.end(), comp);
     std::sort(lists.opaque.begin(), lists.opaque.end(), comp);
     std::sort(lists.transparent.rbegin(), lists.transparent.rend(), comp);
 

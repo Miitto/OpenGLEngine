@@ -10,9 +10,8 @@
 #include "logger.hpp"
 
 namespace engine {
-
-  const float MOVE_SPEED = 30.0f;
-  const float FAST_MOVE_SPEED = 100.f;
+  const float MOVE_SPEED = 15.0f;
+  const float FAST_MOVE_SPEED = 150.f;
 
   Camera::Camera()
       : rotation({0.0, 0.0}), position({}), matrices(Matrices()),
@@ -20,9 +19,9 @@ namespace engine {
                       gl::Buffer::Usage::DYNAMIC | gl::Buffer::Usage::WRITE |
                           gl::Buffer::Usage::PERSISTENT |
                           gl::Buffer::Usage::COHERENT}) {
-    matrixBuffer.map(gl::Buffer::Mapping::COHERENT |
-                     gl::Buffer::Mapping::PERSISTENT |
-                     gl::Buffer::Mapping::WRITE);
+    matrixMapping = matrixBuffer.map(gl::Buffer::Mapping::COHERENT |
+                                     gl::Buffer::Mapping::PERSISTENT |
+                                     gl::Buffer::Mapping::WRITE);
   }
 
   Camera::Camera(Rotation rotation, const glm::vec3& position)
@@ -31,16 +30,24 @@ namespace engine {
                       gl::Buffer::Usage::DYNAMIC | gl::Buffer::Usage::WRITE |
                           gl::Buffer::Usage::PERSISTENT |
                           gl::Buffer::Usage::COHERENT}) {
-    matrixBuffer.map(gl::Buffer::Mapping::COHERENT |
-                     gl::Buffer::Mapping::PERSISTENT |
-                     gl::Buffer::Mapping::WRITE);
+    matrixMapping = matrixBuffer.map(gl::Buffer::Mapping::COHERENT |
+                                     gl::Buffer::Mapping::PERSISTENT |
+                                     gl::Buffer::Mapping::WRITE);
+  }
+
+  void Camera::onResize(int width, int height) {
+    glm::vec2 size =
+        glm::vec2(static_cast<float>(width), static_cast<float>(height));
+    matrices.resolution = size;
+    matrixMapping.write(&matrices.resolution, sizeof(glm::vec2),
+                        offsetof(Matrices, resolution));
   }
 
   PerspectiveCamera::PerspectiveCamera(float nearClip, float farClip,
                                        float aspect, float fov)
       : Camera(), fov(fov), near(nearClip), far(farClip),
         m_frustum(matrices.viewProj) {
-    matrices.proj = glm::perspective(fov, aspect, nearClip, farClip);
+    matrices.proj = glm::perspective(fov, aspect, farClip, nearClip);
     buildMatrices();
     writeMatrices();
   }
@@ -97,8 +104,9 @@ namespace engine {
   }
 
   void PerspectiveCamera::onResize(int width, int height) {
+    Camera::onResize(width, height);
     float aspect = static_cast<float>(width) / static_cast<float>(height);
-    matrices.proj = glm::perspective(fov, aspect, near, far);
+    matrices.proj = glm::perspective(fov, aspect, far, near);
     buildMatrices();
     writeMatrices();
     m_frustum = Frustum(matrices.viewProj);

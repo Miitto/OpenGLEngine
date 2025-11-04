@@ -23,6 +23,30 @@ namespace gl {
     RawTextureHandle _handle;
   };
 
+  class Sampler {
+  public:
+    inline Sampler() { glCreateSamplers(1, m_id); }
+    ~Sampler() {
+      if (m_id != 0)
+        glDeleteSamplers(1, m_id);
+    }
+    Sampler(const Sampler&) = delete;
+    Sampler& operator=(const Sampler&) = delete;
+    Sampler(Sampler&& other) noexcept = default;
+    Sampler& operator=(Sampler&& other) noexcept = default;
+
+    inline const gl::Id& id() const { return m_id; }
+    inline void setParameter(GLenum pname, GLint param) const {
+      glSamplerParameteri(m_id, pname, param);
+    }
+
+    inline void bind(GLuint unit) const { glBindSampler(unit, m_id); }
+    inline static void unbind(GLuint unit) { glBindSampler(unit, 0); }
+
+  protected:
+    gl::Id m_id = 0;
+  };
+
   /// <summary>
   /// RAII 2D Texture wrapper
   /// </summary>
@@ -55,6 +79,16 @@ namespace gl {
     /// <param name="data">Pointer to texture data</param>
     Texture(gl::Texture::Size size, GLenum format, GLenum internalFormat,
             void* data);
+
+    ~Texture() {
+      if (m_id != 0)
+        glDeleteTextures(1, m_id);
+    }
+
+    Texture(const Texture&) = delete;
+    Texture& operator=(const Texture&) = delete;
+    Texture(Texture&& other) noexcept = default;
+    Texture& operator=(Texture&& other) noexcept = default;
 
     inline bool isValid() const { return m_id != 0; }
 

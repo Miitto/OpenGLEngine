@@ -83,7 +83,7 @@ namespace gl {
     void bindAttribs(GLuint bufferIndex,
                      std::initializer_list<GLuint> attribIndices) const;
 
-    void attribDivisor(GLuint index, GLuint divisor) const;
+    void bufferDivisor(GLuint index, GLuint divisor) const;
 
     void label(const char name[]) const;
 

@@ -3,10 +3,16 @@
 #include <glm\ext\matrix_transform.hpp>
 
 namespace engine::scene {
-  Node::Node(bool transparent, bool shouldDraw) {
-    if (transparent) {
+  Node::Node(RenderType renderType, bool shouldDraw) {
+    switch (renderType) {
+    case RenderType::LIT:
+      flags |= LIT;
+      break;
+    case RenderType::TRANSPARENT:
       flags |= TRANSPARENT;
+      break;
     }
+
     if (shouldDraw) {
       flags |= DRAWABLE;
     }

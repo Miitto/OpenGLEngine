@@ -80,7 +80,6 @@ namespace gl {
     gl::Id m_id = 0;
     GLuint m_size = 0;
     // Topmost bit is set when persistently mapped
-    void* m_mapping = nullptr;
 
   public:
     constexpr inline static GLuint roundToAlignment(GLuint size,
@@ -243,13 +242,6 @@ namespace gl {
     /// Unmaps the buffer.
     /// </summary>
     void unmap();
-
-    /// <summary>
-    /// Retrieves the current persistent mapping of the buffer, if any. May not
-    /// return a valid mapping.
-    /// </summary>
-    /// <returns></returns>
-    const gl::Mapping getMapping() const;
 
     /// <summary>
     /// Set the debug label of this buffer.

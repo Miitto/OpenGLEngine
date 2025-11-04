@@ -101,17 +101,11 @@ namespace gl {
     if (m_id == 0) {
       gl::Logger::error("Attempted to map an uninitialized buffer");
     }
-
-    if (m_mapping != nullptr) {
-      gl::Logger::error("Attempted to map a buffer that is already mapped");
-    }
 #endif
+
     length = length == std::numeric_limits<GLuint>::max() ? m_size : length;
 
     auto ptr = glMapNamedBufferRange(m_id, offset, length, flags);
-    if ((flags & GL_MAP_PERSISTENT_BIT) != 0) {
-      m_mapping = setPersistentBit(ptr);
-    }
 
     return gl::Mapping(this, ptr, length, (flags & GL_MAP_PERSISTENT_BIT) != 0);
   }
@@ -123,15 +117,6 @@ namespace gl {
     }
 #endif
     glUnmapNamedBuffer(m_id);
-    m_mapping = nullptr;
-  }
-
-  const gl::Mapping gl::Buffer::getMapping() const {
-    // Yucky const_cast, but preferable to needing a mutable buffer to retrieve
-    // the mapping
-    return gl::Mapping(
-        const_cast<gl::Buffer*>(this), const_cast<void*>(m_mapping), m_size,
-        (reinterpret_cast<uintptr_t>(m_mapping) & PERSISTENT_MAP_BIT) != 0);
   }
 
   void gl::Buffer::unbind(GLenum target) { glBindBuffer(target, 0); }

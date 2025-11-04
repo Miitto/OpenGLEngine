@@ -6,6 +6,7 @@
 #include "engine/scene_graph.hpp"
 #include "engine/window.hpp"
 #include <chrono>
+#include <gl/gl.hpp>
 
 namespace engine {
   /// <summary>
@@ -110,13 +111,12 @@ namespace engine {
       gl::Texture diffuse;
       gl::Texture normal;
       gl::Texture material;
-      gl::Texture depth;
-      gl::Texture stencil;
+      gl::Texture depthStencil;
       gl::Framebuffer fbo;
     };
 
   protected:
-    GBuffers gbuffers;
+    std::optional<GBuffers> gbuffers;
 
     static std::vector<std::function<void()>> pluginShutdowns;
   };
