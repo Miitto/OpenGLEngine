@@ -14,11 +14,7 @@ namespace engine {
     /// <summary>
     /// Whether stb_image has been initialized.
     /// </summary>
-    static bool inited;
-    /// <summary>
-    /// Initializes stb_image on first use, NOOP otherwise.
-    /// </summary>
-    static void ensureInit();
+    static bool yFlipped;
 
     Image(glm::ivec2 dim, int channels, unsigned char* data)
         : dimensions(dim), channels(channels), data(data) {}
@@ -52,8 +48,13 @@ namespace engine {
     /// defined.</param>
     /// <returns>Image on success, error string on failure</returns>
     static inline std::expected<Image, std::string>
-    fromFile(std::string_view file, int desiredChannels = 0) {
-      ensureInit();
+    fromFile(std::string_view file, bool flipY = false,
+             int desiredChannels = 0) {
+      if (flipY != yFlipped) {
+        stbi_set_flip_vertically_on_load(flipY);
+        yFlipped = flipY;
+      }
+
       int width, height, channels;
       unsigned char* data =
           stbi_load(file.data(), &width, &height, &channels, desiredChannels);
