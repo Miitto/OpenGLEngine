@@ -82,6 +82,8 @@ namespace engine {
   }
 
   void App::onWindowResize(engine::Window::Size newSize) {
+    glViewport(0, 0, newSize.width, newSize.height);
+    glScissor(0, 0, newSize.width, newSize.height);
     gbuffers = createGBuffers(newSize);
   }
 
