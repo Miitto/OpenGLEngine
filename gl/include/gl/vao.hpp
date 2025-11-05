@@ -12,7 +12,11 @@ namespace gl {
   class Vao {
     gl::Id m_id = 0;
 
+    explicit Vao(size_t) : m_id(0) {} // Uninitialized constructor
+
   public:
+    static inline Vao uninitialized() { return Vao(0); }
+
     /// <summary>
     /// Creates a new VAO.
     /// </summary>

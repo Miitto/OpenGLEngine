@@ -20,7 +20,7 @@ target_sources(${PROJECT_NAME}
     mesh/mesh_animation.cpp
     mesh/mesh_material.cpp
     image.cpp
- "glLoader.cpp")
+ "glLoader.cpp" "globals.cpp")
 
 include(stb)
 link_stb(${PROJECT_NAME} PUBLIC)

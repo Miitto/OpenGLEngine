@@ -64,6 +64,7 @@ namespace gl {
       break;
     case GL_DEBUG_TYPE_OTHER:
       type_str = "OTHER";
+      return;
       break;
     }
 

@@ -1,5 +1,6 @@
 #include "engine/glLoader.hpp"
 
+#include "engine/globals.hpp"
 #include "gl/gl.hpp"
 #include "logger.hpp"
 
@@ -20,6 +21,7 @@ namespace engine {
       Logger::info("Loaded OpenGL version: {}.{}", GLVersion.major,
                    GLVersion.minor);
       gl::initAttribs();
+      engine::globals::initGlobals();
     } else {
       engine::Logger::error("Failed to load OpenGL");
       return false;

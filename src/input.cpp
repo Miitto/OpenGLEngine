@@ -32,7 +32,6 @@ namespace engine {
                      : action == GLFW_REPEAT ? KeyState::Held
                                              : KeyState::Up;
     keyState[key] = state;
-    Logger::debug("Key {} is now {}", key, state);
   }
   void Input::onMouseMove(double x, double y) {
     if (m_imguiWantsMouse) {

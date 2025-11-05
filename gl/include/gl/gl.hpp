@@ -6,6 +6,7 @@
 
 #include <gl/attribs.hpp>
 #include <gl/buffer.hpp>
+#include <gl/cubeMap.hpp>
 #include <gl/framebuffer.hpp>
 #include <gl/shaders.hpp>
 #include <gl/texture.hpp>
