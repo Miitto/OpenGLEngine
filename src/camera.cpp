@@ -54,9 +54,11 @@ namespace engine {
 
   void Camera::update(const Input& input, float dt) {
     delta = dt;
-    auto& delta = input.mouse().delta;
-    rotation.pitch -= (delta.y);
-    rotation.yaw -= (delta.x);
+    if (enableMouse) {
+      auto& delta = input.mouse().delta;
+      rotation.pitch -= (delta.y);
+      rotation.yaw -= (delta.x);
+    }
 
     if (input.isKeyDown(GLFW_KEY_UP))
       rotation.pitch += 100.0f * dt;
@@ -96,6 +98,10 @@ namespace engine {
 
     buildMatrices();
     writeMatrices();
+
+    if (input.isKeyPressed(GLFW_KEY_ESCAPE)) {
+      enableMouse = !enableMouse;
+    }
   }
 
   void PerspectiveCamera::update(const Input& input, float dt) {
@@ -121,6 +127,7 @@ namespace engine {
     ImGui::Text("Position: (%.2f, %.2f, %.2f)", position.x, position.y,
                 position.z);
     ImGui::Text("Rotation: (%.2f, %.2f)", rotation.pitch, rotation.yaw);
+    ImGui::Checkbox("Enable Mouse", &enableMouse);
 
     bool needSetPolygonMode = false;
 

@@ -151,6 +151,7 @@ namespace engine {
     float delta = 0.0;
     int polygonType = 0;
     bool vsync = true;
+    bool enableMouse = true;
   };
 
   /// <summary>
