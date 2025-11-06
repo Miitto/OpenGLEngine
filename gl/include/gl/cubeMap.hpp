@@ -42,6 +42,8 @@ namespace gl {
       glTextureParameteri(_id, pname, param);
     }
 
+    inline void generateMipmaps() const { glGenerateTextureMipmap(_id); }
+
     inline void bind(GLuint unit) const { glBindTextureUnit(unit, _id); }
 
   protected:
