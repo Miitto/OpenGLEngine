@@ -32,16 +32,7 @@ namespace gl {
                        GLint level = 0) const {
       glNamedFramebufferTexture(m_id, attachment, texture.id(), level);
     }
-    /// <summary>
-    /// Attaches a multisample texture to the framebuffer at the given
-    /// attachment.
-    /// </summary>
-    /// <param name="attachment">Attachment point</param>
-    /// <param name="texture">Texture to attach</param>
-    void attachTexture(GLenum attachment,
-                       const gl::Texture2DMultiSample& texture) const {
-      glNamedFramebufferTexture(m_id, attachment, texture.id(), 0);
-    }
+
     /// <summary>
     /// Binds the framebuffer to the given target.
     /// </summary>

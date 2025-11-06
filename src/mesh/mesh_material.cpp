@@ -1,4 +1,5 @@
 #include "engine/mesh/mesh_material.hpp"
+#include <engine/image.hpp>
 #include <fstream>
 #include <iostream>
 
@@ -71,5 +72,75 @@ namespace engine::mesh {
       return nullptr;
     }
     return meshLayers[i];
+  }
+
+  std::expected<TextureSet, std::string>
+  MaterialEntry::LoadTextures(const std::string& basePath) const {
+    auto diffuseOpt = GetEntry("Diffuse");
+    if (!diffuseOpt) {
+      return std::unexpected("No diffuse texture specified in material");
+    }
+    auto& diffusePath = *diffuseOpt;
+    auto imgOpt = engine::Image::fromFile(basePath + diffusePath.data(), true);
+    if (!imgOpt) {
+      return std::unexpected("Failed to load diffuse texture from " +
+                             std::string(basePath) + std::string(diffusePath));
+    }
+
+    auto& img = imgOpt.value();
+    auto diffuseTex = img.toTexture(-1);
+    diffuseTex.setParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    diffuseTex.setParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    diffuseTex.createHandle();
+    auto diffuseHandle = diffuseTex.handle();
+
+    TextureImageSet images{
+        .diffuse = std::move(diffuseTex),
+    };
+
+    TextureHandleSet handles{
+        .diffuse = diffuseHandle,
+    };
+
+    TextureSet textureSet{
+        .images = std::move(images),
+        .handles = std::move(handles),
+    };
+
+    auto bumpOpt = GetEntry("Bump");
+    if (bumpOpt) {
+      auto& bumpPath = *bumpOpt;
+      auto imgOpt = engine::Image::fromFile(basePath + bumpPath.data(), true);
+      if (!imgOpt) {
+        return std::unexpected("Failed to load bump texture from " +
+                               std::string(basePath) + std::string(bumpPath));
+      }
+      auto& img = imgOpt.value();
+      textureSet.images.bump = img.toTexture();
+      textureSet.images.bump->setParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+      textureSet.images.bump->setParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      textureSet.images.bump->createHandle();
+      textureSet.handles.bump = textureSet.images.bump->handle();
+    }
+    auto materialOpt = GetEntry("Material");
+    if (materialOpt) {
+      auto& materialPath = *materialOpt;
+      auto imgOpt =
+          engine::Image::fromFile(basePath + materialPath.data(), true);
+      if (!imgOpt) {
+        return std::unexpected("Failed to load material texture from " +
+                               std::string(basePath) +
+                               std::string(materialPath));
+      }
+      auto& img = imgOpt.value();
+      textureSet.images.material = img.toTexture(-1);
+      textureSet.images.material->setParameter(GL_TEXTURE_MIN_FILTER,
+                                               GL_LINEAR_MIPMAP_LINEAR);
+      textureSet.images.material->setParameter(GL_TEXTURE_MAG_FILTER,
+                                               GL_LINEAR);
+      textureSet.images.material->createHandle();
+      textureSet.handles.material = textureSet.images.material->handle();
+    }
+    return textureSet;
   }
 } // namespace engine::mesh

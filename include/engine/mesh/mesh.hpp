@@ -28,11 +28,6 @@ _-_-_-_-_-_-_-""  ""
 #include <vector>
 
 namespace engine::mesh {
-  struct TextureSet {
-    gl::RawTextureHandle diffuse;
-    gl::RawTextureHandle bump = 0;
-  };
-
   /// <summary>
   /// Utilities to do with meshes.
   /// This mesh owns one buffer that holds all mesh data.

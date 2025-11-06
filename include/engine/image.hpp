@@ -74,13 +74,27 @@ namespace engine {
 
     /// <summary>
     /// Creates a gl::Texture from this image.
+    /// Set mipmaps to 0 for no mipmaps.
+    /// Set mipmaps to >0 to generate that many mipmap levels.
+    /// Set mipmaps to -1 to generate full mipmap chain.
     /// </summary>
     /// <returns>gl::Texture holding this image</returns>
-    gl::Texture toTexture() const {
-      gl::Texture::Size size{dimensions.x, dimensions.y};
-      return gl::Texture(size, gl::Texture::formatFromChannels(channels),
-                         gl::Texture::internalFormatFromChannels(channels),
-                         data);
+    gl::Texture toTexture(int mipmaps = 0) const {
+      if (mipmaps == -1) {
+        mipmaps = gl::Texture::calcMipLevels(dimensions.x, dimensions.y);
+      }
+      gl::Texture tex{};
+      tex.storage(mipmaps + 1,
+                  gl::Texture::internalFormatFromChannels(channels),
+                  dimensions);
+      tex.subImage(0, 0, 0, dimensions.x, dimensions.y,
+                   gl::Texture::formatFromChannels(channels), GL_UNSIGNED_BYTE,
+                   data);
+      if (mipmaps > 0) {
+        tex.generateMipmap();
+      }
+
+      return tex;
     }
 
     const glm::ivec2& getDimensions() const { return dimensions; }

@@ -1,9 +1,10 @@
 #pragma once
 
-#include "gl/gl.hpp"
+#include <glad/glad.h>
 
 namespace gl {
   extern GLint UNIFORM_BUFFER_OFFSET_ALIGNMENT;
+  extern GLint TEXTURE_MAX_LEVEL;
 
   /// <summary>
   /// Initializes global attribute-related values.

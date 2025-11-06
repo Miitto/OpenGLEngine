@@ -20,12 +20,12 @@ namespace {
     engine::App::GBuffers gbuffers;
     gbuffers.diffuse = std::move(gl::Texture());
     gbuffers.diffuse.label("GBuffer Diffuse");
-    gbuffers.diffuse.storage(1, GL_RGBA8, s);
+    gbuffers.diffuse.storage(1, GL_RGBA32F, s);
     setParams(gbuffers.diffuse);
 
     gbuffers.normal = std::move(gl::Texture());
     gbuffers.normal.label("GBuffer Normal");
-    gbuffers.normal.storage(1, GL_RGBA8, s);
+    gbuffers.normal.storage(1, GL_RGB8, s);
     setParams(gbuffers.normal);
 
     gbuffers.material = std::move(gl::Texture());

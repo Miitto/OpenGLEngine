@@ -15,13 +15,6 @@ namespace gl {
   void TextureHandle::use() { makeHandleResident(_handle); }
   void TextureHandle::unuse() { makeHandleNonResident(_handle); }
 
-  Texture::Texture(gl::Texture::Size size, GLenum format, GLenum internalFormat,
-                   void* data)
-      : Texture() {
-    storage(1, internalFormat, size);
-    subImage(0, 0, 0, size.width, size.height, format, GL_UNSIGNED_BYTE, data);
-  }
-
   GLenum Texture::formatFromChannels(int channels) {
     switch (channels) {
     case 1:
@@ -55,7 +48,7 @@ namespace gl {
   void Texture::storage(GLint level, GLenum internalformat,
                         gl::Texture::Size size) {
     m_size = size;
-    glTextureStorage2D(m_id, level, internalformat, size.width, size.height);
+    glTextureStorage2D(m_id, level, internalformat, size.x, size.y);
   }
 
   void Texture::subImage(GLint level, GLint xoffset, GLint yoffset,

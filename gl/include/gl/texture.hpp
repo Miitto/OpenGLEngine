@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cmath>
+#include <gl/attribs.hpp>
 #include <gl/id.hpp>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
@@ -52,13 +54,7 @@ namespace gl {
   /// </summary>
   class Texture {
   public:
-    /// <summary>
-    /// 2D Texture size
-    /// </summary>
-    struct Size {
-      GLsizei width;
-      GLsizei height;
-    };
+    using Size = glm::ivec2;
 
   private:
     gl::Id m_id = 0;
@@ -70,19 +66,16 @@ namespace gl {
     /// Creates a new texture without storage.
     /// </summary>
     inline Texture() { glCreateTextures(GL_TEXTURE_2D, 1, m_id); }
-    /// <summary>
-    /// Creates a new texture with the given size, format, internal format
-    /// </summary>
-    /// <param name="size">Texture dimensions</param>
-    /// <param name="format">Texture format (RGBA)</param>
-    /// <param name="internalFormat">Internal Format (RGBA8)</param>
-    /// <param name="data">Pointer to texture data</param>
-    Texture(gl::Texture::Size size, GLenum format, GLenum internalFormat,
-            void* data);
 
     ~Texture() {
       if (m_id != 0)
         glDeleteTextures(1, m_id);
+    }
+
+    inline static GLint calcMipLevels(GLsizei width, GLsizei height) {
+      return std::min(
+          static_cast<GLint>(std::floor(std::log2(std::max(width, height)))),
+          gl::TEXTURE_MAX_LEVEL);
     }
 
     Texture(const Texture&) = delete;
@@ -153,13 +146,23 @@ namespace gl {
     /// <param name="unit"></param>
     inline static void unbind(GLenum unit) { glBindTextureUnit(unit, 0); }
     /// <summary>
-    /// Sets a texture parameter.
+    /// Sets an integer texture parameter.
     /// </summary>
     /// <param name="pname">Parameter name</param>
     /// <param name="param">Parameter value</param>
     inline void setParameter(GLenum pname, GLint param) const {
       glTextureParameteri(m_id, pname, param);
     }
+
+    /// <summary>
+    /// Sets a float texture parameter.
+    /// </summary>
+    /// <param name="pname">Parameter name</param>
+    /// <param name="param">Parameter value</param>
+    inline void setParameter(GLenum pname, GLfloat param) const {
+      glTextureParameterf(m_id, pname, param);
+    }
+
     /// <summary>
     /// Creates storage for the texture.
     /// MUST only be called ONCE per texture level.
@@ -187,31 +190,6 @@ namespace gl {
     /// </summary>
     /// <returns>Texture dimensions</returns>
     inline const gl::Texture::Size& size() const { return m_size; }
-  };
-
-  class Texture2DMultiSample {
-  private:
-    gl::Id m_id = 0;
-    gl::Texture::Size m_size{};
-
-  public:
-    Texture2DMultiSample() {
-      glCreateTextures(GL_TEXTURE_2D_MULTISAMPLE, 1, m_id);
-    }
-    const gl::Id& id() const { return m_id; }
-
-    void bind(GLenum unit) const { glBindTextureUnit(unit, m_id); }
-    static void unbind(GLenum unit) { glBindTextureUnit(unit, 0); }
-    void setParameter(GLenum pname, GLint param) const {
-      glTextureParameteri(m_id, pname, param);
-    }
-    void storage(GLint samples, GLenum internalformat, gl::Texture::Size size) {
-      m_size = size;
-      glTextureStorage2DMultisample(m_id, samples, internalformat, size.width,
-                                    size.height, GL_FALSE);
-    }
-
-    const gl::Texture::Size& size() const { return m_size; }
   };
 
   class TextureArray {
