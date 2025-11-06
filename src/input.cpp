@@ -65,7 +65,7 @@ namespace engine {
     m_mouse.delta = {0, 0};
     std::vector<int> keys;
     keys.reserve(keyState.size());
-    for (auto [key, state] : keyState) {
+    for (auto& [key, state] : keyState) {
       if (state == KeyState::Down) {
         state = KeyState::Held;
       } else if (state == KeyState::Up) {
