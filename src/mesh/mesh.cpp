@@ -7,84 +7,22 @@ namespace engine::mesh {
   Mesh::Mesh(const mesh::Data& meshData)
       : meshLayers(meshData.meshLayers()), layerNames(meshData.layerNames()) {}
 
-  void Mesh::Draw() {
-    auto bg = vao.bindGuard();
-    if (indexOffset != 0) {
-      uintptr_t offset = static_cast<uintptr_t>(indexOffset);
-      glDrawElements(type, indexCount, GL_UNSIGNED_INT,
-                     reinterpret_cast<GLvoid*>(offset));
-    } else {
-      glDrawArrays(type, 0, vertexCount);
+  GLuint Mesh::writeBatchedDraws(gl::MappingRef& mapping, GLuint baseVertex,
+                                 GLuint instances, GLuint baseInstance) const {
+    std::vector<gl::DrawElementsIndirectCommand> draws(meshLayers.size());
+    for (size_t i = 0; i < meshLayers.size(); ++i) {
+      const auto& layer = meshLayers[i];
+      draws[i].count = layer.count;
+      draws[i].instanceCount = instances;
+      draws[i].firstIndex = layer.start + indexOffset;
+      draws[i].baseVertex = baseVertex;
+      draws[i].baseInstance = baseInstance;
     }
-  }
-
-  void Mesh::DrawSubMesh(int i) {
-    if (i < 0 || i >= (int)meshLayers.size()) {
-      return;
-    }
-    mesh::SubMesh m = meshLayers[i];
-
-    auto bg = vao.bindGuard();
-    if (indexOffset != 0) {
-      auto vertexOffset = m.start * sizeof(unsigned int);
-
-      auto offset = indexOffset + vertexOffset;
-      glDrawElements(type, m.count, GL_UNSIGNED_INT, (const GLvoid*)offset);
-    } else {
-      glDrawArrays(type, m.start, m.count); // Draw the triangle!
-    }
-  }
-
-  void Mesh::prepSubmeshesForBatch(const gl::Mapping& indirectBufferMapping,
-                                   GLuint offset, uint32_t instances,
-                                   uint32_t baseInstance) const {
-    std::vector<gl::DrawElementsIndirectCommand> drawCommands;
-    drawCommands.reserve(meshLayers.size());
-    uint32_t indexOffsetAsIndexCount =
-        static_cast<uint32_t>(indexOffset / sizeof(uint32_t));
-    for (const auto& subMesh : meshLayers) {
-      gl::DrawElementsIndirectCommand cmd = {
-          .count = static_cast<uint32_t>(subMesh.count),
-          .instanceCount = instances,
-          .firstIndex =
-              static_cast<uint32_t>(subMesh.start) + indexOffsetAsIndexCount,
-          .baseVertex = 0,
-          .baseInstance = baseInstance};
-      drawCommands.push_back(cmd);
-    }
-    indirectBufferMapping.write(
-        drawCommands.data(),
-        drawCommands.size() * sizeof(gl::DrawElementsIndirectCommand), offset);
-  }
-
-  void Mesh::BatchSubmeshes(const gl::Buffer& buffer, GLuint offset) {
-    if (meshLayers.size() == 0) {
-      return;
-    }
-
-    auto bg = vao.bindGuard();
-    if (jointBuffer != 0) {
-      glBindBufferRange(static_cast<GLenum>(gl::Buffer::StorageTarget::STORAGE),
-                        jointBindPoint, jointBuffer, jointOffset, jointSize);
-    }
-    buffer.bind(gl::Buffer::BasicTarget::DRAW_INDIRECT);
-
-    uintptr_t offsetPtr = static_cast<uintptr_t>(offset);
-
-    glMultiDrawElementsIndirect(type, GL_UNSIGNED_INT, (const void*)offsetPtr,
-                                meshLayers.size(), 0);
-  }
-
-  void Mesh::setupInstanceAttr(GLuint index, GLuint size, GLenum type,
-                               GLboolean normalize, GLuint offset,
-                               GLuint bufferIndex) {
-    vao.attribFormat(index, size, type, normalize, offset, bufferIndex);
-  }
-
-  void Mesh::bindInstanceBuffer(GLuint index, const gl::Buffer& buffer,
-                                GLuint offset, GLuint stride, GLuint divisor) {
-    vao.bindVertexBuffer(index, buffer.id(), offset, stride);
-    vao.bufferDivisor(index, divisor);
+    auto size = static_cast<GLuint>(draws.size() *
+                                    sizeof(gl::DrawElementsIndirectCommand));
+    mapping.write(draws.data(), size, 0);
+    mapping += size;
+    return static_cast<GLuint>(draws.size());
   }
 
   GLuint Mesh::vertexDataSize(const mesh::Data& meshData) {
@@ -119,8 +57,10 @@ namespace engine::mesh {
   }
 
   void Mesh::writeVertexData(const mesh::Data& meshData,
-                             const BufferLocation& buffer,
+                             GLuint& vertexStartIndex,
                              const gl::MappingRef stagingMapping) {
+    vertexOffset = vertexStartIndex;
+
     auto& vertices = meshData.vertices();
     auto& colors = meshData.colors();
     auto& textureCoords = meshData.textureCoords();
@@ -163,22 +103,6 @@ namespace engine::mesh {
     constexpr GLuint stride = Mesh::vertexStride();
 
 #define AC(FIELD) !FIELD.empty()
-    vao.attribFormat(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-    GLuint vPos = sizeof(glm::vec3);
-
-    vao.attribFormat(1, 4, GL_FLOAT, GL_FALSE, vPos, 0);
-    vPos += sizeof(glm::vec4);
-    vao.attribFormat(2, 2, GL_FLOAT, GL_FALSE, vPos, 0);
-    vPos += sizeof(glm::vec2);
-    vao.attribFormat(3, 3, GL_FLOAT, GL_FALSE, vPos, 0);
-    vPos += sizeof(glm::vec3);
-    vao.attribFormat(4, 4, GL_FLOAT, GL_FALSE, vPos, 0);
-    vPos += sizeof(glm::vec4);
-    vao.attribFormat(5, 4, GL_FLOAT, GL_FALSE, vPos, 0);
-    vPos += sizeof(glm::vec4);
-    vao.attribFormat(6, 4, GL_INT, GL_FALSE, vPos, 0);
-
-    vao.bindVertexBuffer(0, buffer.buffer.id(), buffer.offset, stride);
 
     {
 #define WRITE(VEC, T)                                                          \
@@ -187,6 +111,7 @@ namespace engine::mesh {
   }                                                                            \
   offset += sizeof(T);
 
+      GLuint written = 0;
       GLuint vStart = 0;
       for (size_t i = 0; i < vertices.size(); ++i) {
         auto offset = vStart;
@@ -199,35 +124,41 @@ namespace engine::mesh {
         WRITE(weightIndices, glm::ivec4);
 
         vStart += stride;
+        ++written;
       }
 #undef WRITE
 #undef AC
+
+      vertexStartIndex += written;
     }
   }
 
   void Mesh::writeIndexData(const engine::mesh::Data& meshData,
-                            const BufferLocation& buffer,
+                            GLuint& indexOffset,
                             const gl::MappingRef stagingMapping) {
+
 #ifndef NDEBUG
-    if (buffer.offset % sizeof(uint32_t) != 0) {
+    if (indexOffset % sizeof(uint32_t) != 0) {
       engine::Logger::warn(
           "Mesh data: index buffer offset is not aligned to uint32_t!");
     }
 #endif
 
-    indexOffset = buffer.offset / sizeof(uint32_t);
+    this->indexOffset = indexOffset / sizeof(uint32_t);
 
     auto& indices = meshData.indices();
-    stagingMapping.write(indices.data(), indices.size() * sizeof(uint32_t), 0);
-    vao.bindIndexBuffer(buffer.buffer.id());
+    auto size = static_cast<GLuint>(indices.size() * sizeof(uint32_t));
+    stagingMapping.write(indices.data(), size, 0);
+    indexOffset += size;
   }
 
   void Mesh::writeJointData(const mesh::Data& meshData,
                             const mesh::Animation& animation,
-                            const BufferLocation& buffer, GLuint jointBindPoint,
-                            const gl::MappingRef stagingMapping) {
+                            const gl::MappingRef stagingMapping,
+                            uint32_t startJointIndex) {
+    auto offset = stagingMapping.getOffset();
 #ifndef NDEBUG
-    if (buffer.offset % gl::UNIFORM_BUFFER_OFFSET_ALIGNMENT != 0) {
+    if (offset % gl::UNIFORM_BUFFER_OFFSET_ALIGNMENT != 0) {
       engine::Logger::warn("Mesh data: joint buffer offset is not aligned to "
                            "GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT!");
     }
@@ -249,10 +180,10 @@ namespace engine::mesh {
                            jointMatrices.size() * sizeof(glm::mat4), offset);
     }
 
-    jointOffset = buffer.offset;
-    jointSize = jointCount * sizeof(glm::mat4) * animation.GetFrameCount();
-    this->jointBindPoint = jointBindPoint;
-    jointBuffer = gl::Id(static_cast<GLuint>(buffer.buffer.id()));
+    this->startJointIndex = startJointIndex;
+    this->frameCount = animation.GetFrameCount();
+    this->jointCount = jointCount;
+    this->oneOverFrameRate = 1.0f / animation.GetFrameRate();
   }
 
   bool Mesh::GetSubMesh(int i, const mesh::SubMesh* s) const {

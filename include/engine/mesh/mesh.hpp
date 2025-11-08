@@ -28,6 +28,24 @@ _-_-_-_-_-_-_-""  ""
 #include <vector>
 
 namespace engine::mesh {
+
+  struct WeightedVertex {
+    glm::vec3 position;
+    glm::vec2 texCoord;
+    glm::vec3 normal;
+    glm::vec4 tangent;
+    glm::vec4 jointWeights;
+    glm::ivec4 jointIndices;
+  };
+
+  struct Vertex {
+    glm::vec3 position;
+    glm::vec4 color;
+    glm::vec2 texCoord;
+    glm::vec3 normal;
+    glm::vec4 tangent;
+  };
+
   /// <summary>
   /// Utilities to do with meshes.
   /// This mesh owns one buffer that holds all mesh data.
@@ -44,34 +62,10 @@ namespace engine::mesh {
   public:
     Mesh(void) = default;
     ~Mesh(void) = default;
-    Mesh(const Mesh& other) = delete;
-    Mesh& operator=(const Mesh& other) = delete;
+    explicit Mesh(const Mesh& other) = default;
+    Mesh& operator=(const Mesh& other) = default;
     Mesh(Mesh&& other) = default;
     Mesh& operator=(Mesh&& other) = default;
-
-    /// <summary>
-    /// Draws the entire mesh. Expects any necessary objects to be bound as the
-    /// mesh only binds its VAO
-    /// </summary>
-    void Draw();
-    /// <summary>
-    /// Draws a specific sub-mesh. Expects any necessary objects to be bound as
-    /// the mesh only binds its VAO
-    /// </summary>
-    /// <param name="i"></param>
-    void DrawSubMesh(int i);
-
-    /// <summary>
-    /// Prepares an buffer by populating it with indirect draw commands for all
-    /// submeshes
-    /// </summary>
-    /// <param name="indirectBufferMapping">Mapping to write the indirect draw
-    /// commands to</param> <param name="offset">Offset into the mapping to
-    /// write</param> <param name="instances">Number of instances to
-    /// render</param> <param name="baseInstance">Base Instance</param>
-    void prepSubmeshesForBatch(const gl::Mapping& indirectBufferMapping,
-                               GLuint offset, uint32_t instances,
-                               uint32_t baseInstance) const;
 
     /// <summary>
     /// Draws all sub-meshes using MultiDraw. Expects any necessary objects to
@@ -79,13 +73,18 @@ namespace engine::mesh {
     /// Takes in the buffer and offset that should have just been used with
     /// prepSubmeshesForBatch
     /// </summary>
-    void BatchSubmeshes(const gl::Buffer& buffer, GLuint offset);
+    void BatchSubmeshes(GLuint offset);
+
+    GLuint writeBatchedDraws(gl::MappingRef& mapping, GLuint baseVertex,
+                             GLuint instances, GLuint baseInstance) const;
 
     unsigned int GetVertexCount() const { return vertexCount; }
 
     unsigned int GetTriCount() const { return GetVertexCount() / 3; }
 
-    int GetSubMeshCount() const { return (int)meshLayers.size(); }
+    unsigned int GetSubMeshCount() const {
+      return (unsigned int)meshLayers.size();
+    }
 
     bool GetSubMesh(int i, const mesh::SubMesh* s) const;
     bool GetSubMesh(const std::string& name, const mesh::SubMesh* s) const;
@@ -95,17 +94,6 @@ namespace engine::mesh {
              sizeof(glm::vec3) + sizeof(glm::vec4) + sizeof(glm::vec4) +
              sizeof(glm::ivec4);
     }
-
-    void setupInstanceAttr(GLuint index, GLuint size, GLenum type,
-                           GLboolean normalize, GLuint offset,
-                           GLuint bufferIndex);
-    void bindInstanceBuffer(GLuint index, const gl::Buffer& buffer,
-                            GLuint offset, GLuint stride, GLuint divisor = 1);
-
-    struct BufferLocation {
-      const gl::Buffer& buffer;
-      GLuint offset;
-    };
 
     Mesh(const engine::mesh::Data& meshData);
 
@@ -136,19 +124,26 @@ namespace engine::mesh {
     GLuint indirectBufferSize() const;
 
     void writeVertexData(const engine::mesh::Data& meshData,
-                         const BufferLocation& buffer,
+                         GLuint& vertexStartIndex,
                          const gl::MappingRef stagingMapping);
 
-    void writeIndexData(const engine::mesh::Data& meshData,
-                        const BufferLocation& buffer,
+    void writeIndexData(const engine::mesh::Data& meshData, GLuint& indexOffset,
                         const gl::MappingRef stagingMapping);
 
     void writeJointData(const engine::mesh::Data& meshData,
                         const engine::mesh::Animation& animation,
-                        const BufferLocation& buffer, GLuint jointBindPoint,
-                        const gl::MappingRef stagingMapping);
+                        const gl::MappingRef stagingMapping,
+                        uint32_t jointStartIndex);
+
+    GLuint getVertexOffset() const { return vertexOffset; }
+    GLuint getFrameCount() const { return frameCount; }
+    GLuint getJointCount() const { return jointCount; }
+    GLuint getStartJointIndex() const { return startJointIndex; }
+    float getOneOverFrameRate() const { return oneOverFrameRate; }
 
   protected:
+    GLuint vertexOffset = 0;
+
     /// <summary>
     /// Number of indices into the buffer where index data starts.
     /// Same as the byte offset / sizeof(uint32_t)
@@ -156,26 +151,14 @@ namespace engine::mesh {
     GLuint indexOffset = 0;
 
     /// <summary>
-    /// Byte offset into the buffer where joint data starts.
+    /// Index of the first joint for this mesh (relative to the other joints in
+    /// its buffer).
     /// </summary>
-    GLuint jointOffset = 0;
+    GLuint startJointIndex = 0;
 
-    /// <summary>
-    /// Size of the joint data in bytes.
-    /// </summary>
-    GLuint jointSize = 0;
-
-    /// <summary>
-    /// Reference to the buffer holding the joint data
-    /// </summary>
-    gl::Id jointBuffer = 0;
-
-    /// <summary>
-    /// Bind point to bind the joint data buffer to.
-    /// </summary>
-    GLuint jointBindPoint = 0;
-
-    gl::Vao vao = {};
+    GLuint frameCount = 0;
+    GLuint jointCount = 0;
+    float oneOverFrameRate = 0.0f;
 
     GLuint type = GL_TRIANGLES;
 

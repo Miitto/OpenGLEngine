@@ -51,12 +51,21 @@ namespace gl {
 
   class MappingRef {
     const Mapping& mapping;
-    const GLuint offset = 0;
+    GLuint offset = 0;
 
   public:
     MappingRef(const Mapping& mapping) : mapping(mapping) {}
     MappingRef(const Mapping& mapping, GLuint offset)
         : mapping(mapping), offset(offset) {}
+
+    MappingRef& operator+=(GLuint value) {
+      offset += value;
+      return *this;
+    }
+
+    MappingRef operator+(GLuint value) const {
+      return MappingRef(mapping, offset + value);
+    }
 
     inline bool isValid() const { return mapping.isValid(); }
     inline operator bool() const { return isValid(); }
@@ -69,6 +78,8 @@ namespace gl {
                       GLuint writeOffset = 0) const {
       mapping.write(data, length, offset + writeOffset);
     }
+
+    inline GLuint getOffset() const { return offset; }
   };
 
   /// <summary>
@@ -94,6 +105,8 @@ namespace gl {
         return size;
       return size + (alignment - remainder);
     }
+
+    inline GLuint size() const { return m_size; }
 
     /// <summary>
     /// Buffer usage flags.

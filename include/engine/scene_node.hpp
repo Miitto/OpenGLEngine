@@ -2,6 +2,7 @@
 
 #include "frame_info.hpp"
 #include <engine/frustum.hpp>
+#include <gl/buffer.hpp>
 #include <glm/glm.hpp>
 #include <memory>
 
@@ -39,6 +40,7 @@ namespace engine {
       Node(Node&&) noexcept;
       Node& operator=(Node&&) noexcept;
 
+#pragma region Get Set
       inline void SetTransform(const glm::mat4& matrix) {
         m_transforms.local = matrix;
         UpdateTransforms();
@@ -67,6 +69,9 @@ namespace engine {
       }
 
       glm::mat4 getModelMatrix() const;
+
+#pragma endregion
+
       void AddChild(const std::shared_ptr<Node>& child);
       void UpdateBoundingRadius();
 
@@ -85,6 +90,53 @@ namespace engine {
 
       bool shouldDraw() const { return (flags & DRAWABLE) != 0; }
       virtual bool shouldRender(const engine::Frustum& frustum) const;
+
+      struct DrawParams {
+        GLuint instances;
+        GLuint maxIndirectCmds;
+        GLuint maxVertices;
+
+        DrawParams& operator+=(const DrawParams& o) {
+          maxIndirectCmds += o.maxIndirectCmds;
+          maxVertices += o.maxVertices;
+          return *this;
+        }
+
+        DrawParams operator+(const DrawParams& o) const {
+          return {maxIndirectCmds + o.maxIndirectCmds,
+                  maxVertices + o.maxVertices};
+        }
+      };
+
+      virtual DrawParams getBatchDrawParams() const {
+        DrawParams maxDraws = {0, 0, 0};
+        for (const auto& child : m_children) {
+          maxDraws += child->getBatchDrawParams();
+        }
+
+        return maxDraws;
+      }
+
+      virtual void skinVertices(uint32_t& baseVertex) {
+        for (const auto& child : m_children) {
+          child->skinVertices(baseVertex);
+        }
+      }
+
+      virtual void writeInstanceData(gl::MappingRef& mapping) const {
+        for (const auto& child : m_children) {
+          child->writeInstanceData(mapping);
+        }
+      }
+
+      virtual void writeBatchedDraws(gl::MappingRef& mapping,
+                                     GLuint& writtenDraws) const {
+        for (const auto& child : m_children) {
+          child->writeBatchedDraws(mapping, writtenDraws);
+        }
+      }
+
+#pragma region Children Iterators
       std::vector<std::shared_ptr<Node>>& GetChildren() { return m_children; }
       std::vector<std::shared_ptr<Node>>::iterator begin() {
         return m_children.begin();
@@ -104,6 +156,7 @@ namespace engine {
       std::vector<std::shared_ptr<Node>>::const_iterator cend() const {
         return m_children.cend();
       }
+#pragma endregion
 
     protected:
       void UpdateTransforms();
