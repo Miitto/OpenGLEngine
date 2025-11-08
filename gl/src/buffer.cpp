@@ -38,8 +38,9 @@ namespace {
 
 namespace gl {
 
-  Mapping::Mapping(gl::Buffer* buffer, void* ptr, GLuint size, bool persistent)
-      : buffer(buffer), ptr(ptr), size(size) {
+  Mapping::Mapping(gl::Buffer* buffer, void* ptr, GLuint size, GLuint offset,
+                   bool persistent)
+      : buffer(buffer), ptr(ptr), size(size), offset(offset) {
     if (persistent) {
       this->ptr = setPersistentBit(ptr);
     }
@@ -84,6 +85,10 @@ namespace gl {
     memcpy(dst, data, length);
   }
 
+  void Mapping::flush(GLuint length, GLuint offset) const {
+    glFlushMappedNamedBufferRange(buffer->id(), offset + this->offset, length);
+  }
+
   void gl::Buffer::init(GLuint size, const void* data, UsageBitFlag flags) {
 #ifndef NDEBUG
     if (m_size != 0) {
@@ -107,7 +112,8 @@ namespace gl {
 
     auto ptr = glMapNamedBufferRange(m_id, offset, length, flags);
 
-    return gl::Mapping(this, ptr, length, (flags & GL_MAP_PERSISTENT_BIT) != 0);
+    return gl::Mapping(this, ptr, length, offset,
+                       (flags & GL_MAP_PERSISTENT_BIT) != 0);
   }
 
   inline void gl::Buffer::unmap() {

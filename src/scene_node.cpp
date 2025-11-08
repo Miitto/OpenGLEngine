@@ -67,11 +67,16 @@ namespace engine::scene {
     }
   }
 
-  void Node::render(const engine::FrameInfo& info, const engine::Camera& camera,
-                    const engine::Frustum& frustum) {
+  void Node::render(const engine::Frustum& frustum) {
     for (auto& child : *this) {
       if (child->shouldRender(frustum))
-        child->render(info, camera, frustum);
+        child->render(frustum);
+    }
+  }
+
+  void Node::renderDepthOnly() {
+    for (auto& child : *this) {
+      child->renderDepthOnly();
     }
   }
 

@@ -52,37 +52,48 @@ namespace engine {
         std::vector<Pair> opaque;
         std::vector<Pair> transparent;
 
-        inline void renderLit(const engine::FrameInfo& info,
-                              const engine::Camera& camera,
-                              const engine::Frustum& frustum) const {
+        inline void renderLit(const engine::Frustum& frustum) const {
           for (const auto node : lit) {
-            node.node->render(info, camera, frustum);
+            node.node->render(frustum);
           }
         }
 
-        inline void renderOpaque(const engine::FrameInfo& info,
-                                 const engine::Camera& camera,
-                                 const engine::Frustum& frustum) const {
+        inline void renderLitDepthOnly() const {
+          for (const auto node : lit) {
+            node.node->renderDepthOnly();
+          }
+        }
+
+        inline void renderOpaque(const engine::Frustum& frustum) const {
           for (const auto node : opaque) {
-            node.node->render(info, camera, frustum);
+            node.node->render(frustum);
           }
         }
 
-        inline void renderTransparent(const engine::FrameInfo& info,
-                                      const engine::Camera& camera,
-                                      const engine::Frustum& frustum) const {
+        inline void renderOpaqueDepthOnly() const {
+          for (const auto node : opaque) {
+            node.node->renderDepthOnly();
+          }
+        }
+
+        inline void renderTransparent(const engine::Frustum& frustum) const {
           for (const auto node : transparent) {
-            node.node->render(info, camera, frustum);
+            node.node->render(frustum);
           }
         }
       };
 
-      NodeLists BuildNodeLists(const engine::Camera& camera);
+      NodeLists BuildNodeLists(const engine::Frustum& frustum,
+                               const glm::vec3& position);
 
       inline void update(const engine::FrameInfo& info) {
         for (auto& root : m_roots) {
           root->update(info);
         }
+      }
+
+      inline const std::vector<std::shared_ptr<Node>>& GetRoots() const {
+        return m_roots;
       }
 
     protected:

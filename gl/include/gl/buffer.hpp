@@ -12,10 +12,11 @@ namespace gl {
     gl::Buffer* buffer;
     void* ptr;
     GLuint size;
+    GLuint offset = 0;
 
   public:
     Mapping() = default;
-    Mapping(gl::Buffer* buffer, void* ptr, GLuint size = 0,
+    Mapping(gl::Buffer* buffer, void* ptr, GLuint size = 0, GLuint offset = 0,
             bool persistent = false);
     ~Mapping();
 
@@ -47,6 +48,7 @@ namespace gl {
 
     bool isPersistent() const;
     void write(const void* data, GLuint length, GLuint offset = 0) const;
+    void flush(GLuint length, GLuint offset = 0) const;
   };
 
   class MappingRef {
@@ -78,6 +80,9 @@ namespace gl {
                       GLuint writeOffset = 0) const {
       mapping.write(data, length, offset + writeOffset);
     }
+    void flush(GLuint length, GLuint flushOffset = 0) const {
+      mapping.flush(length, offset + flushOffset);
+    }
 
     inline GLuint getOffset() const { return offset; }
   };
@@ -88,7 +93,7 @@ namespace gl {
   /// </summary>
   class Buffer {
   protected:
-    gl::Id m_id = 0;
+    gl::Id m_id = gl::Id(0);
     GLuint m_size = 0;
     // Topmost bit is set when persistently mapped
 
@@ -134,10 +139,6 @@ namespace gl {
       /// Makes the driver keep the buffer coherent between CPU and GPU.
       /// </summary>
       COHERENT = GL_MAP_COHERENT_BIT,
-      /// <summary>
-      /// Allow for explicit flushing of modified ranges.
-      /// </summary>
-      FLUSH_EXPLICIT = GL_MAP_FLUSH_EXPLICIT_BIT
     };
     using UsageBitFlag = Bitflag<Usage>;
 
@@ -228,8 +229,22 @@ namespace gl {
     Buffer(const Buffer&) = delete;
     Buffer& operator=(const Buffer&) = delete;
 
-    Buffer(Buffer&& other) noexcept = default;
-    Buffer& operator=(Buffer&& other) noexcept = default;
+    Buffer(Buffer&& other) noexcept {
+      if (m_id != 0)
+        glDeleteBuffers(1, m_id);
+
+      m_id = std::move(other.m_id);
+      other.m_id = gl::Id(0);
+    }
+    Buffer& operator=(Buffer&& other) noexcept {
+      if (this != &other) {
+        if (m_id != 0)
+          glDeleteBuffers(1, m_id);
+        m_id = std::move(other.m_id);
+        other.m_id = gl::Id(0);
+      }
+      return *this;
+    }
 
     /// <summary>
     /// Get the buffer handle.

@@ -9,13 +9,41 @@ namespace gl {
   /// RAII Framebuffer object wrapper.
   /// </summary>
   class Framebuffer {
-    gl::Id m_id = 0;
+    gl::Id m_id = gl::Id(0);
+
+    explicit constexpr Framebuffer(size_t s) : m_id(0) { (void)s; }
 
   public:
     /// <summary>
     /// Creates a new framebuffer object.
     /// </summary>
     Framebuffer() { glCreateFramebuffers(1, m_id); }
+    ~Framebuffer() {
+      if (m_id != 0)
+        glDeleteFramebuffers(1, m_id);
+    }
+
+    Framebuffer(const Framebuffer&) = delete;
+    Framebuffer& operator=(const Framebuffer&) = delete;
+    Framebuffer(Framebuffer&& other) noexcept {
+      if (m_id != 0)
+        glDeleteFramebuffers(1, m_id);
+      m_id = std::move(other.m_id);
+      other.m_id = gl::Id(0);
+    }
+
+    Framebuffer& operator=(Framebuffer&& other) noexcept {
+      if (this != &other) {
+        if (m_id != 0)
+          glDeleteFramebuffers(1, m_id);
+        m_id = std::move(other.m_id);
+        other.m_id = gl::Id(0);
+      }
+      return *this;
+    }
+
+    static constexpr Framebuffer uninitialized() { return Framebuffer(0); }
+
     /// <summary>
     /// Gets the framebuffer ID.
     /// </summary>
@@ -31,6 +59,22 @@ namespace gl {
     void attachTexture(GLenum attachment, const gl::Texture& texture,
                        GLint level = 0) const {
       glNamedFramebufferTexture(m_id, attachment, texture.id(), level);
+    }
+
+    void attachTexture(GLenum attachment, GLuint textureId,
+                       GLint level = 0) const {
+      glNamedFramebufferTexture(m_id, attachment, textureId, level);
+    }
+
+    void attachTextureLayer(GLenum attachment, const gl::Texture& texture,
+                            GLint level, GLint layer) const {
+      glNamedFramebufferTextureLayer(m_id, attachment, texture.id(), level,
+                                     layer);
+    }
+
+    void attachTextureLayer(GLenum attachment, GLuint textureId, GLint level,
+                            GLint layer) const {
+      glNamedFramebufferTextureLayer(m_id, attachment, textureId, level, layer);
     }
 
     /// <summary>

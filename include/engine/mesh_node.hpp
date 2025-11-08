@@ -16,14 +16,15 @@ namespace engine::scene {
     virtual ~MeshNode() = default;
 
     void update(const engine::FrameInfo& info) override {
-      if (mesh->getFrameCount() > 0)
-        frame += info.frameDelta * mesh->getOneOverFrameRate();
+      if (mesh->getFrameCount() > 0) {
+        frameTime -= info.frameDelta;
+        while (frameTime < 0.0f) {
+          frameTime += mesh->getOneOverFrameRate();
+          currentFrame = (currentFrame + 1) % mesh->getFrameCount();
+        }
+      }
 
       engine::scene::Node::update(info);
-    }
-    void render(const engine::FrameInfo& info, const engine::Camera& camera,
-                const engine::Frustum& frustum) override {
-      engine::scene::Node::render(info, camera, frustum);
     }
 
     virtual Node::DrawParams getBatchDrawParams() const override {
@@ -39,37 +40,50 @@ namespace engine::scene {
       this->baseVertex = baseVertex;
 
       glm::uvec4 uInfo(mesh->getVertexOffset(), mesh->getStartJointIndex(),
-                       mesh->getFrameCount(), baseVertex);
+                       mesh->getJointCount(), baseVertex);
 
       glUniform4uiv(0, 1, &uInfo.x);
-      glUniform1f(1, frame);
+      glUniform1ui(1, currentFrame);
 
       glDispatchCompute(mesh->GetVertexCount(), 1, 1);
+
+      baseVertex += mesh->GetVertexCount();
 
       engine::scene::Node::skinVertices(baseVertex);
     }
 
-    virtual void writeInstanceData(gl::MappingRef& mapping) const override {
+    virtual void writeInstanceData(gl::MappingRef& mapping, GLuint& instances,
+                                   gl::MappingRef& textureMapping) override {
       auto modelMatrix = getModelMatrix();
       mapping.write(&modelMatrix, sizeof(glm::mat4));
       mapping += sizeof(glm::mat4);
 
-      engine::scene::Node::writeInstanceData(mapping);
+      baseInstance = instances;
+      instances += 1;
+
+      mesh->writeTextureSets(textureMapping);
+
+      engine::scene::Node::writeInstanceData(mapping, instances,
+                                             textureMapping);
     }
 
     virtual void writeBatchedDraws(gl::MappingRef& mapping,
                                    GLuint& writtenDraws) const override {
-      writtenDraws += mesh->writeBatchedDraws(mapping, baseVertex, 1, 0);
+      auto written =
+          mesh->writeBatchedDraws(mapping, baseVertex, 1, baseInstance);
+      writtenDraws += written;
 
       engine::scene::Node::writeBatchedDraws(mapping, writtenDraws);
     }
 
-    void setFrame(float newFrame) { frame = newFrame; }
+    void setFrame(uint32_t newFrame) { currentFrame = newFrame; }
 
   protected:
     std::shared_ptr<engine::mesh::Mesh> mesh;
 
     uint32_t baseVertex = 0;
-    float frame = 0.0f;
+    float frameTime = 0.0f;
+    uint32_t currentFrame = 0;
+    uint32_t baseInstance = 0;
   };
 } // namespace engine::scene

@@ -4,8 +4,18 @@
 #include <gl/structs.hpp>
 
 namespace engine::mesh {
-  Mesh::Mesh(const mesh::Data& meshData)
-      : meshLayers(meshData.meshLayers()), layerNames(meshData.layerNames()) {}
+  Mesh::Mesh(const mesh::Data& meshData, std::vector<TextureSet>&& textureSets)
+      : meshLayers(meshData.meshLayers()), layerNames(meshData.layerNames()),
+        textureSets(std::move(textureSets)) {
+#ifndef NDEBUG
+    if (this->textureSets.size() != this->layerNames.size()) {
+      engine::Logger::critical(
+          "Mesh created with differing number of texture sets and layer "
+          "names!");
+      abort();
+    }
+#endif
+  }
 
   GLuint Mesh::writeBatchedDraws(gl::MappingRef& mapping, GLuint baseVertex,
                                  GLuint instances, GLuint baseInstance) const {
@@ -22,47 +32,30 @@ namespace engine::mesh {
                                     sizeof(gl::DrawElementsIndirectCommand));
     mapping.write(draws.data(), size, 0);
     mapping += size;
+
     return static_cast<GLuint>(draws.size());
   }
 
-  GLuint Mesh::vertexDataSize(const mesh::Data& meshData) {
-    auto vertexNum = static_cast<GLuint>(meshData.vertices().size());
-    return vertexNum * vertexStride();
-  }
+  void Mesh::writeTextureSets(gl::MappingRef& mapping) const {
+    std::vector<engine::mesh::TextureHandleSet> textureHandles;
+    textureHandles.reserve(textureSets.size());
+    for (const auto& textureSet : textureSets) {
+      textureHandles.push_back(textureSet.handles);
+    }
 
-  Mesh::AlignedSize Mesh::indexDataSize(const mesh::Data& meshData,
-                                        GLuint startOffset) {
-    auto offset = gl::Buffer::roundToAlignment(startOffset, sizeof(uint32_t));
-    auto indexSize =
-        static_cast<GLuint>(meshData.indices().size() * sizeof(uint32_t));
-    auto totalSize = indexSize + (offset - startOffset);
-
-    return {.offset = offset, .size = totalSize, .alignedSize = indexSize};
-  }
-
-  Mesh::AlignedSize Mesh::jointDataSize(const mesh::Animation& animation,
-                                        GLuint startOffset) {
-    auto offset = gl::Buffer::roundToAlignment(
-        startOffset, gl::UNIFORM_BUFFER_OFFSET_ALIGNMENT);
-    auto jointSize =
-        static_cast<GLuint>(animation.GetFrameCount() *
-                            animation.GetJointCount() * sizeof(glm::mat4));
-    auto totalSize = jointSize + (offset - startOffset);
-    return {.offset = offset, .size = totalSize, .alignedSize = jointSize};
-  }
-
-  GLuint Mesh::indirectBufferSize() const {
-    return static_cast<GLuint>(meshLayers.size() *
-                               sizeof(gl::DrawElementsIndirectCommand));
+    auto textureSize =
+        static_cast<GLuint>(textureHandles.size() * sizeof(TextureHandleSet));
+    mapping.write(textureHandles.data(), textureSize, 0);
+    mapping += textureSize;
   }
 
   void Mesh::writeVertexData(const mesh::Data& meshData,
                              GLuint& vertexStartIndex,
                              const gl::MappingRef stagingMapping) {
     vertexOffset = vertexStartIndex;
+    vertexCount = static_cast<uint32_t>(meshData.vertices().size());
 
     auto& vertices = meshData.vertices();
-    auto& colors = meshData.colors();
     auto& textureCoords = meshData.textureCoords();
     auto& normals = meshData.normals();
     auto& tangents = meshData.tangents();
@@ -74,10 +67,6 @@ namespace engine::mesh {
     auto vertexNum = vertices.size();
 
 #ifndef NDEBUG
-    if (colors.size() > vertexNum) {
-      engine::Logger::warn(
-          "Mesh data: colors size greater than vertices size!");
-    }
     if (textureCoords.size() > vertexNum) {
       engine::Logger::warn(
           "Mesh data: textureCoords size greater than vertices size!");
@@ -100,33 +89,30 @@ namespace engine::mesh {
     }
 #endif
 
-    constexpr GLuint stride = Mesh::vertexStride();
-
 #define AC(FIELD) !FIELD.empty()
 
     {
-#define WRITE(VEC, T)                                                          \
-  if (AC(VEC)) {                                                               \
-    stagingMapping.write(&VEC[i], sizeof(T), offset);                          \
-  }                                                                            \
-  offset += sizeof(T);
-
       GLuint written = 0;
       GLuint vStart = 0;
       for (size_t i = 0; i < vertices.size(); ++i) {
         auto offset = vStart;
-        WRITE(vertices, glm::vec3);
-        WRITE(colors, glm::vec4);
-        WRITE(textureCoords, glm::vec2);
-        WRITE(normals, glm::vec3);
-        WRITE(tangents, glm::vec4);
-        WRITE(weights, glm::vec4);
-        WRITE(weightIndices, glm::ivec4);
 
-        vStart += stride;
+        WeightedVertex vertex{
+            .position = vertices[i],
+            .texCoord = AC(textureCoords) ? textureCoords[i] : glm::vec2(0.0f),
+            .normal = AC(normals) ? normals[i] : glm::vec3(0.0f, 0.0f, 1.0f),
+            .tangent =
+                AC(tangents) ? tangents[i] : glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),
+            .jointWeights = AC(weights) ? weights[i] : glm::vec4(0.0f),
+            .jointIndices =
+                AC(weightIndices) ? weightIndices[i] : glm::ivec4(0),
+        };
+
+        stagingMapping.write(&vertex, sizeof(WeightedVertex), offset);
+
+        vStart += sizeof(WeightedVertex);
         ++written;
       }
-#undef WRITE
 #undef AC
 
       vertexStartIndex += written;

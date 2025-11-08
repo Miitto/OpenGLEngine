@@ -11,8 +11,8 @@ namespace gl {
     GLuint m_id = 0;
 
   public:
-    inline explicit Id() = default;
-    inline Id(GLuint id) : m_id(id) {}
+    inline explicit constexpr Id() = default;
+    inline constexpr explicit Id(GLuint id) : m_id(id) {}
     ~Id() = default;
 
     Id(const Id&) = delete;

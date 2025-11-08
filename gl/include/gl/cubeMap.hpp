@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gl/id.hpp"
+#include <gl/texture.hpp>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 
@@ -23,8 +24,24 @@ namespace gl {
     }
     CubeMap(const CubeMap&) = delete;
     CubeMap& operator=(const CubeMap&) = delete;
-    CubeMap(CubeMap&& other) noexcept = default;
-    CubeMap& operator=(CubeMap&& other) noexcept = default;
+    CubeMap(CubeMap&& other) noexcept {
+      if (_id != 0)
+        glDeleteTextures(1, _id);
+      _id = std::move(other._id);
+      other._id = gl::Id(0);
+    }
+    CubeMap& operator=(CubeMap&& other) noexcept {
+      if (this != &other) {
+        if (_id != 0)
+          glDeleteTextures(1, _id);
+
+        _id = std::move(other._id);
+        other._id = 0;
+      }
+      return *this;
+    }
+
+    const gl::Id& id() const { return _id; }
 
     inline void storage(GLsizei levels, GLenum internalFormat,
                         const glm::uvec2& size) {
@@ -46,7 +63,16 @@ namespace gl {
 
     inline void bind(GLuint unit) const { glBindTextureUnit(unit, _id); }
 
+    inline const gl::TextureHandle& createHandle() {
+      RawTextureHandle rawHandle = glGetTextureHandleARB(_id);
+      _handle = TextureHandle(rawHandle);
+      return _handle;
+    }
+
+    inline const gl::TextureHandle& handle() const { return _handle; }
+
   protected:
     gl::Id _id;
+    gl::TextureHandle _handle = 0;
   };
 } // namespace gl

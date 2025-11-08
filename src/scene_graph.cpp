@@ -4,14 +4,13 @@
 #include <functional>
 
 namespace engine::scene {
-  Graph::NodeLists Graph::BuildNodeLists(const engine::Camera& camera) {
+  Graph::NodeLists Graph::BuildNodeLists(const engine::Frustum& frustum,
+                                         const glm::vec3& position) {
     NodeLists lists;
-
-    auto& frustum = camera.GetFrustum();
 
     auto addNodeToList = [&](Node& node) {
       glm::vec3 nodePos(node.GetTransforms().world[3]);
-      auto relCamPos = nodePos - camera.GetPosition();
+      auto relCamPos = nodePos - position;
       float dist = glm::dot(relCamPos, relCamPos); // Squared distance
       switch (node.getRenderType()) {
       case Node::RenderType::LIT:

@@ -6,7 +6,8 @@ namespace engine {
   class Plane {
   public:
     Plane() = default;
-    inline Plane(const glm::vec3& normal, float d, bool normalize = false) {
+    constexpr inline Plane(const glm::vec3& normal, float d,
+                           bool normalize = false) {
       if (normalize) {
         float length = static_cast<float>(normal.length());
         this->normal = normal / length;

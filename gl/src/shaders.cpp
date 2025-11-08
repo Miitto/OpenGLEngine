@@ -54,7 +54,7 @@ namespace gl {
     }
   }
 
-  bool Program::handleLinkFail(const gl::Id&& id) {
+  bool Program::handleLinkFail(const GLuint id) {
     GLint success;
     glGetProgramiv(id, GL_LINK_STATUS, &success);
     if (!success) {

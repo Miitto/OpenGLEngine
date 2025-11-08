@@ -10,7 +10,7 @@ namespace gl {
   /// RAII Vertex Array Object wrapper.
   /// </summary>
   class Vao {
-    gl::Id m_id = 0;
+    gl::Id m_id = gl::Id(0);
 
     explicit Vao(size_t) : m_id(0) {} // Uninitialized constructor
 
@@ -30,8 +30,21 @@ namespace gl {
     }
     Vao(const Vao&) = delete;
     Vao& operator=(const Vao&) = delete;
-    Vao(Vao&& other) noexcept = default;
-    Vao& operator=(Vao&& other) noexcept = default;
+    Vao(Vao&& other) noexcept {
+      if (m_id != 0)
+        glDeleteVertexArrays(1, m_id);
+      m_id = std::move(other.m_id);
+      other.m_id = gl::Id(0);
+    }
+    Vao& operator=(Vao&& other) noexcept {
+      if (this != &other) {
+        if (m_id != 0)
+          glDeleteVertexArrays(1, m_id);
+        m_id = std::move(other.m_id);
+        other.m_id = gl::Id(0);
+      }
+      return *this;
+    }
 
     /// <summary>
     /// Returns the VAO handle.
@@ -96,7 +109,12 @@ namespace gl {
     /// </summary>
     class BindGuard {
     public:
+      BindGuard() = default;
       ~BindGuard() { Vao::unbind(); }
+      BindGuard(const BindGuard&) = delete;
+      BindGuard& operator=(const BindGuard&) = delete;
+      BindGuard(BindGuard&&) = delete;
+      BindGuard& operator=(BindGuard&&) = delete;
     };
 
     /// <summary>

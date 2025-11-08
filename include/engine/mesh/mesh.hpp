@@ -20,6 +20,7 @@ _-_-_-_-_-_-_-""  ""
 
 #include "engine/mesh/mesh_animation.hpp"
 #include "engine/mesh/mesh_data.hpp"
+#include "engine/mesh/mesh_material.hpp"
 #include <array>
 #include <gl/gl.hpp>
 #include <glm/glm.hpp>
@@ -31,8 +32,11 @@ namespace engine::mesh {
 
   struct WeightedVertex {
     glm::vec3 position;
+    float padding1 = 0;
     glm::vec2 texCoord;
+    glm::vec2 padding2 = glm::vec2(0);
     glm::vec3 normal;
+    float padding3 = 0;
     glm::vec4 tangent;
     glm::vec4 jointWeights;
     glm::ivec4 jointIndices;
@@ -40,11 +44,32 @@ namespace engine::mesh {
 
   struct Vertex {
     glm::vec3 position;
-    glm::vec4 color;
+    float padding1 = 0;
     glm::vec2 texCoord;
+    glm::vec2 padding2 = glm::vec2(0);
     glm::vec3 normal;
+    float padding3 = 0;
     glm::vec4 tangent;
   };
+
+  static_assert(offsetof(WeightedVertex, texCoord) == 16,
+                "WeightedVertex texCoord is at the wrong offset");
+  static_assert(offsetof(Vertex, texCoord) == 16,
+                "Vertex texCoord is at the wrong offset");
+
+  static_assert(offsetof(WeightedVertex, normal) == 32,
+                "WeightedVertex normal is at the wrong offset");
+  static_assert(offsetof(Vertex, normal) == 32,
+                "Vertex normal is at the wrong offset");
+  static_assert(offsetof(WeightedVertex, tangent) == 48,
+                "WeightedVertex tangent is at the wrong offset");
+  static_assert(offsetof(Vertex, tangent) == 48,
+                "Vertex tangent is at the wrong offset");
+
+  static_assert(offsetof(WeightedVertex, jointWeights) == 64,
+                "WeightedVertex jointWeights is at the wrong offset");
+  static_assert(offsetof(WeightedVertex, jointIndices) == 80,
+                "WeightedVertex jointIndices is at the wrong offset");
 
   /// <summary>
   /// Utilities to do with meshes.
@@ -62,7 +87,7 @@ namespace engine::mesh {
   public:
     Mesh(void) = default;
     ~Mesh(void) = default;
-    explicit Mesh(const Mesh& other) = default;
+    Mesh(const Mesh& other) = delete;
     Mesh& operator=(const Mesh& other) = default;
     Mesh(Mesh&& other) = default;
     Mesh& operator=(Mesh&& other) = default;
@@ -78,6 +103,8 @@ namespace engine::mesh {
     GLuint writeBatchedDraws(gl::MappingRef& mapping, GLuint baseVertex,
                              GLuint instances, GLuint baseInstance) const;
 
+    void writeTextureSets(gl::MappingRef& mapping) const;
+
     unsigned int GetVertexCount() const { return vertexCount; }
 
     unsigned int GetTriCount() const { return GetVertexCount() / 3; }
@@ -89,39 +116,8 @@ namespace engine::mesh {
     bool GetSubMesh(int i, const mesh::SubMesh* s) const;
     bool GetSubMesh(const std::string& name, const mesh::SubMesh* s) const;
 
-    constexpr static GLuint vertexStride() {
-      return sizeof(glm::vec3) + sizeof(glm::vec4) + sizeof(glm::vec2) +
-             sizeof(glm::vec3) + sizeof(glm::vec4) + sizeof(glm::vec4) +
-             sizeof(glm::ivec4);
-    }
-
-    Mesh(const engine::mesh::Data& meshData);
-
-    static GLuint vertexDataSize(const mesh::Data& meshData);
-
-    struct AlignedSize {
-      /// <summary>
-      /// Offset where the data should start
-      /// </summary>
-      GLuint offset;
-      /// <summary>
-      /// Total size to needed including any alignment padding
-      /// This should be used when calculating buffer sizes
-      /// </summary>
-      GLuint size;
-      /// <summary>
-      /// Size of the data without any alignment padding
-      /// This should be used when binding buffers
-      /// </summary>
-      GLuint alignedSize;
-    };
-    static AlignedSize indexDataSize(const mesh::Data& meshData,
-                                     GLuint startOffset);
-
-    static AlignedSize jointDataSize(const mesh::Animation& animation,
-                                     GLuint startOffset);
-
-    GLuint indirectBufferSize() const;
+    Mesh(const engine::mesh::Data& meshData,
+         std::vector<TextureSet>&& textureSets);
 
     void writeVertexData(const engine::mesh::Data& meshData,
                          GLuint& vertexStartIndex,
@@ -168,5 +164,7 @@ namespace engine::mesh {
 
     std::vector<mesh::SubMesh> meshLayers;
     std::vector<std::string> layerNames;
+
+    std::vector<TextureSet> textureSets;
   };
 } // namespace engine::mesh

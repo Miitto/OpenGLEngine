@@ -76,9 +76,8 @@ namespace engine {
       void UpdateBoundingRadius();
 
       virtual void update(const engine::FrameInfo& info);
-      virtual void render(const engine::FrameInfo& info,
-                          const engine::Camera& camera,
-                          const engine::Frustum& frustum);
+      virtual void render(const engine::Frustum& frustum);
+      virtual void renderDepthOnly();
 
       inline float GetBoundingRadius() const { return m_absBoundingRadius; }
       inline void SetBoundingRadius(float radius) {
@@ -97,14 +96,16 @@ namespace engine {
         GLuint maxVertices;
 
         DrawParams& operator+=(const DrawParams& o) {
+          instances += o.instances;
           maxIndirectCmds += o.maxIndirectCmds;
           maxVertices += o.maxVertices;
           return *this;
         }
 
         DrawParams operator+(const DrawParams& o) const {
-          return {maxIndirectCmds + o.maxIndirectCmds,
-                  maxVertices + o.maxVertices};
+          return {.instances = instances + o.instances,
+                  .maxIndirectCmds = maxIndirectCmds + o.maxIndirectCmds,
+                  .maxVertices = maxVertices + o.maxVertices};
         }
       };
 
@@ -123,9 +124,10 @@ namespace engine {
         }
       }
 
-      virtual void writeInstanceData(gl::MappingRef& mapping) const {
+      virtual void writeInstanceData(gl::MappingRef& mapping, GLuint& instances,
+                                     gl::MappingRef& textureMapping) {
         for (const auto& child : m_children) {
-          child->writeInstanceData(mapping);
+          child->writeInstanceData(mapping, instances, textureMapping);
         }
       }
 

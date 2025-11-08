@@ -31,8 +31,23 @@ namespace gl {
 
     Shader(const Shader&) = delete;
     Shader& operator=(const Shader&) = delete;
-    Shader(Shader&&) noexcept = default;
-    Shader& operator=(Shader&&) noexcept = default;
+    Shader(Shader&& other) noexcept {
+      if (m_id != 0)
+        glDeleteShader(m_id);
+      m_id = std::move(other.m_id);
+      other.m_id = gl::Id(0);
+    }
+    Shader& operator=(Shader&& other) noexcept {
+      if (this != &other) {
+        if (m_id != 0)
+          glDeleteShader(m_id);
+        if (this != &other) {
+          m_id = std::move(other.m_id);
+          other.m_id = gl::Id(0);
+        }
+      }
+      return *this;
+    }
 
     const gl::Id& id() const { return m_id; }
 
@@ -49,19 +64,44 @@ namespace gl {
   /// RAII wrapper for a linked program.
   /// </summary>
   class Program {
-    gl::Id m_id = 0;
+    gl::Id m_id = gl::Id(0);
 
     /// <summary>
     /// Handles reading the link error log if linking failed.
     /// </summary>
     /// <param name="id">Program ID</param>
     /// <returns>If linking failed.</returns>
-    static bool handleLinkFail(const gl::Id&& id);
+    static bool handleLinkFail(const GLuint id);
 
     Program(gl::Id&& id) : m_id(std::move(id)) {}
 
   public:
     explicit Program() = default;
+    ~Program() {
+      if (m_id != 0)
+        glDeleteProgram(m_id);
+    }
+
+    Program(const Program&) = delete;
+    Program& operator=(const Program&) = delete;
+
+    Program(Program&& other) noexcept {
+      if (m_id != 0)
+        glDeleteProgram(m_id);
+      m_id = std::move(other.m_id);
+      other.m_id = gl::Id(0);
+    }
+
+    Program& operator=(Program&& other) noexcept {
+      if (this != &other) {
+        if (m_id != 0)
+          glDeleteProgram(m_id);
+        m_id = std::move(other.m_id);
+        other.m_id = gl::Id(0);
+      }
+      return *this;
+    }
+
     inline bool isValid() const { return m_id != 0; }
     inline GLuint id() const { return m_id; }
 

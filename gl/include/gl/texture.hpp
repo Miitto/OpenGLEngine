@@ -11,7 +11,7 @@ namespace gl {
 
   class TextureHandle {
   public:
-    inline TextureHandle(RawTextureHandle handle) : _handle(handle) {}
+    inline constexpr TextureHandle(RawTextureHandle handle) : _handle(handle) {}
 
     void use();
     void unuse();
@@ -46,7 +46,7 @@ namespace gl {
     inline static void unbind(GLuint unit) { glBindSampler(unit, 0); }
 
   protected:
-    gl::Id m_id = 0;
+    gl::Id m_id = gl::Id(0);
   };
 
   /// <summary>
@@ -57,15 +57,19 @@ namespace gl {
     using Size = glm::ivec2;
 
   private:
-    gl::Id m_id = 0;
+    gl::Id m_id = gl::Id(0);
     gl::Texture::Size m_size{};
     gl::TextureHandle _handle = 0;
+
+    explicit constexpr Texture(size_t s) : m_id(0) { (void)s; }
 
   public:
     /// <summary>
     /// Creates a new texture without storage.
     /// </summary>
     inline Texture() { glCreateTextures(GL_TEXTURE_2D, 1, m_id); }
+
+    constexpr static Texture uninitialized() { return Texture(0); }
 
     ~Texture() {
       if (m_id != 0)
@@ -80,8 +84,22 @@ namespace gl {
 
     Texture(const Texture&) = delete;
     Texture& operator=(const Texture&) = delete;
-    Texture(Texture&& other) noexcept = default;
-    Texture& operator=(Texture&& other) noexcept = default;
+    Texture(Texture&& other) noexcept {
+      if (m_id == 0)
+        glDeleteTextures(1, m_id);
+      m_id = std::move(other.m_id);
+      other.m_id = gl::Id(0);
+    }
+
+    Texture& operator=(Texture&& other) noexcept {
+      if (this != &other) {
+        if (m_id != 0)
+          glDeleteTextures(1, m_id);
+        m_id = std::move(other.m_id);
+        other.m_id = gl::Id(0);
+      }
+      return *this;
+    }
 
     inline bool isValid() const { return m_id != 0; }
 
@@ -104,9 +122,10 @@ namespace gl {
     /// </summary>
     inline void generateMipmap() const { glGenerateTextureMipmap(m_id); }
 
-    inline void createHandle() {
+    inline const gl::TextureHandle& createHandle() {
       RawTextureHandle rawHandle = glGetTextureHandleARB(m_id);
       _handle = TextureHandle(rawHandle);
+      return _handle;
     }
 
     /// <summary>
@@ -201,7 +220,7 @@ namespace gl {
     };
 
   protected:
-    gl::Id m_id = 0;
+    gl::Id m_id = gl::Id(0);
     Size m_size{};
 
   public:
