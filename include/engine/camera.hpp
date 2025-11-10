@@ -31,6 +31,7 @@ namespace engine {
       glm::mat4 invProj = glm::mat4(1.0);
       glm::mat4 invViewProj = glm::mat4(1.0);
       glm::vec2 resolution = glm::vec2(1.0);
+      glm::vec2 uvRange = glm::vec2(0.0, 1.0);
     };
 
     /// <summary>
@@ -45,6 +46,11 @@ namespace engine {
     Camera(Rotation rotation, const glm::vec3& position);
     ~Camera() = default;
 
+    Camera(const Camera&) = delete;
+    Camera& operator=(const Camera&) = delete;
+    Camera(Camera&&) noexcept = default;
+    Camera& operator=(Camera&&) = default;
+
     /// <summary>
     /// Updates the camera based on user input relative to the delta time.
     /// Will update the view matrix and write it to the matrix buffer.
@@ -58,13 +64,16 @@ namespace engine {
     /// </summary>
     /// <param name="width">New viewport width</param>
     /// <param name="height">New viewport height</param>
-    virtual void onResize(int width, int height);
+    virtual void onResize(int width, int height,
+                          glm::vec2 uvRange = glm::vec2(0.0, 1.0));
 
     inline const Matrices& GetMatrices() const { return matrices; }
     inline const glm::vec3& GetPosition() const { return position; }
     inline void SetPosition(const glm::vec3& pos) { position = pos; }
     inline const Rotation& GetRotation() const { return rotation; }
     inline void SetRotation(const Rotation& rot) { rotation = rot; }
+
+    inline void EnableMouse(bool enable) { enableMouse = enable; }
 
     /// <summary>
     /// Returns the camera's forward vector based on its current rotation.
@@ -130,7 +139,8 @@ namespace engine {
 
       auto invViewProj = glm::inverse(viewProj);
 
-      matrices = Matrices(view, proj, viewProj, invView, invProj, invViewProj);
+      matrices = Matrices(view, proj, viewProj, invView, invProj, invViewProj,
+                          matrices.resolution, matrices.uvRange);
       return matrices;
     }
 
@@ -140,7 +150,7 @@ namespace engine {
     /// first if required.
     /// </summary>
     inline void writeMatrices() const {
-      matrixMapping.write(&matrices, sizeof(Matrices) - sizeof(glm::vec2));
+      matrixMapping.write(&matrices, sizeof(Matrices));
     }
 
     Rotation rotation;
@@ -169,6 +179,10 @@ namespace engine {
     PerspectiveCamera(float nearPlane, float farPlane, float aspectRatio,
                       float fov);
     ~PerspectiveCamera() = default;
+    PerspectiveCamera(const PerspectiveCamera&) = delete;
+    PerspectiveCamera& operator=(const PerspectiveCamera&) = delete;
+    PerspectiveCamera(PerspectiveCamera&&) noexcept = default;
+    PerspectiveCamera& operator=(PerspectiveCamera&&) = default;
 
     /// <summary>
     /// Camera update function. Delegates to base Camera update and updates the
@@ -182,7 +196,8 @@ namespace engine {
     /// </summary>
     /// <param name="width">New viewport width</param>
     /// <param name="height">New viewport height</param>
-    void onResize(int width, int height) override;
+    void onResize(int width, int height,
+                  glm::vec2 uvRange = glm::vec2(0.0, 1.0)) override;
 
     const Frustum& GetFrustum() const override { return m_frustum; };
 

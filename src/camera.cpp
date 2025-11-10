@@ -35,11 +35,12 @@ namespace engine {
                                      gl::Buffer::Mapping::WRITE);
   }
 
-  void Camera::onResize(int width, int height) {
+  void Camera::onResize(int width, int height, glm::vec2 uvRange) {
     glm::vec2 size =
         glm::vec2(static_cast<float>(width), static_cast<float>(height));
     matrices.resolution = size;
-    matrixMapping.write(&matrices.resolution, sizeof(glm::vec2),
+    matrices.uvRange = uvRange;
+    matrixMapping.write(&matrices.resolution, sizeof(glm::vec2) * 2,
                         offsetof(Matrices, resolution));
   }
 
@@ -109,8 +110,8 @@ namespace engine {
     m_frustum = Frustum(matrices.viewProj);
   }
 
-  void PerspectiveCamera::onResize(int width, int height) {
-    Camera::onResize(width, height);
+  void PerspectiveCamera::onResize(int width, int height, glm::vec2 uvRange) {
+    Camera::onResize(width, height, uvRange);
     float aspect = static_cast<float>(width) / static_cast<float>(height);
     matrices.proj = glm::perspective(fov, aspect, far, near);
     buildMatrices();
@@ -123,6 +124,8 @@ namespace engine {
   }
 
   void Camera::CameraDebugUI() {
+    static int renderCount = 0;
+    ImGui::PushID(renderCount++);
     ImGui::Text("Delta Time: %.4f s (%.2f FPS)", delta, 1.0f / delta);
     ImGui::Text("Position: (%.2f, %.2f, %.2f)", position.x, position.y,
                 position.z);
@@ -157,6 +160,8 @@ namespace engine {
       glfwSwapInterval(interval);
       engine::Logger::info("VSync {}", vsync ? "Enabled" : "Disabled");
     }
+
+    ImGui::PopID();
 
     if (needSetPolygonMode) {
       switch (polygonType) {
