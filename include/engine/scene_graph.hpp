@@ -58,9 +58,15 @@ namespace engine {
           }
         }
 
-        inline void renderLitDepthOnly() const {
+        inline void renderLitDepthOnly(const engine::Frustum& frustum) const {
           for (const auto node : lit) {
-            node.node->renderDepthOnly();
+            node.node->renderDepthOnly(frustum);
+          }
+        }
+
+        inline void renderLitDepthOnlyCube() const {
+          for (const auto node : lit) {
+            node.node->renderDepthOnlyCube();
           }
         }
 
@@ -70,9 +76,16 @@ namespace engine {
           }
         }
 
-        inline void renderOpaqueDepthOnly() const {
+        inline void
+        renderOpaqueDepthOnly(const engine::Frustum& frustum) const {
           for (const auto node : opaque) {
-            node.node->renderDepthOnly();
+            node.node->renderDepthOnly(frustum);
+          }
+        }
+
+        inline void renderOpaqueDepthOnlyCube() const {
+          for (const auto node : opaque) {
+            node.node->renderDepthOnlyCube();
           }
         }
 

@@ -127,6 +127,8 @@ namespace engine {
     ImGui::Text("Position: (%.2f, %.2f, %.2f)", position.x, position.y,
                 position.z);
     ImGui::Text("Rotation: (%.2f, %.2f)", rotation.pitch, rotation.yaw);
+    auto forward = this->forward();
+    ImGui::Text("Forward: (%.2f, %.2f, %.2f)", forward.x, forward.y, forward.z);
     ImGui::Checkbox("Enable Mouse", &enableMouse);
 
     bool needSetPolygonMode = false;

@@ -74,9 +74,16 @@ namespace engine::scene {
     }
   }
 
-  void Node::renderDepthOnly() {
+  void Node::renderDepthOnly(const engine::Frustum& frustum) {
     for (auto& child : *this) {
-      child->renderDepthOnly();
+      if (child->shouldRender(frustum))
+        child->renderDepthOnly(frustum);
+    }
+  }
+
+  void Node::renderDepthOnlyCube() {
+    for (auto& child : *this) {
+      child->renderDepthOnlyCube();
     }
   }
 

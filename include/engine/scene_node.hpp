@@ -77,7 +77,8 @@ namespace engine {
 
       virtual void update(const engine::FrameInfo& info);
       virtual void render(const engine::Frustum& frustum);
-      virtual void renderDepthOnly();
+      virtual void renderDepthOnly(const engine::Frustum& frustum);
+      virtual void renderDepthOnlyCube();
 
       inline float GetBoundingRadius() const { return m_absBoundingRadius; }
       inline void SetBoundingRadius(float radius) {
