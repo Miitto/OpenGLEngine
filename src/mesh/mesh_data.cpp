@@ -2,6 +2,7 @@
 
 #include "../logger.hpp"
 #include <fstream>
+#include <tinygltf/tiny_gltf.h>
 
 namespace {
   using engine::mesh::SubMesh;
@@ -254,8 +255,34 @@ namespace engine::mesh {
               M(weights), M(weightIndices), M(indices), M(bindPose),
               M(inverseBindPose), M(jointNames), M(jointParents), M(meshLayers),
               M(layerNames));
+#undef M
 
     return std::expected<Data, std::string>(std::move(mesh));
+  }
+
+  std::expected<Data, std::string>
+  Data::fromGLTFFile(const std::string_view& name) {
+    using namespace tinygltf;
+
+    Model model;
+    TinyGLTF loader;
+    std::string err;
+    std::string warn;
+
+    bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, std::string(name));
+
+    if (!warn.empty()) {
+      engine::Logger::warn("GLTF Warning: {}", warn);
+    }
+
+    if (!err.empty()) {
+      engine::Logger::error("GLTF Error: {}", err);
+    }
+
+    if (!ret) {
+      engine::Logger::error("Failed to load GLTF file: {}", err);
+      return std::unexpected("Failed to load GLTF file");
+    }
   }
 
 #define SET(NAME) _##NAME(std::move(NAME))

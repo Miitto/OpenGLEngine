@@ -11,4 +11,5 @@ target_sources(stb
   BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include
   PRIVATE
   src/image.cpp
+  src/image_write.cpp
 )

@@ -24,3 +24,6 @@ target_sources(${PROJECT_NAME}
 
 include(stb)
 link_stb(${PROJECT_NAME} PUBLIC)
+
+include(tinygltf)
+link_tinygltf(${PROJECT_NAME} PUBLIC)
