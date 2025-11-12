@@ -73,11 +73,8 @@ namespace engine {
         leftActive = !leftActive;
       }
 
-      if (leftActive) {
-        leftCamera.update(input, dt, acceptInput);
-      } else {
-        rightCamera.update(input, dt, acceptInput);
-      }
+      leftCamera.update(input, dt, acceptInput && leftActive);
+      rightCamera.update(input, dt, acceptInput && !leftActive);
     }
 
   protected:
