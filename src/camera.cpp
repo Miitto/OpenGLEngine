@@ -9,27 +9,42 @@
 #include "imgui/imgui.h"
 #include "logger.hpp"
 
+namespace {
+  uint32_t camId = 0;
+}
+
 namespace engine {
   const float MOVE_SPEED = 15.0f;
   const float FAST_MOVE_SPEED = 150.f;
 
   Camera::Camera()
-      : rotation({0.0, 0.0}), position({}), matrices(Matrices()),
+      : rotation(glm::quat(glm::vec3(0, 0, 0))), position({}),
+        matrices(Matrices()),
         matrixBuffer({sizeof(Matrices), nullptr,
                       gl::Buffer::Usage::DYNAMIC | gl::Buffer::Usage::WRITE |
                           gl::Buffer::Usage::PERSISTENT |
-                          gl::Buffer::Usage::COHERENT}) {
+                          gl::Buffer::Usage::COHERENT}),
+        id(camId++) {
     matrixMapping = matrixBuffer.map(gl::Buffer::Mapping::COHERENT |
                                      gl::Buffer::Mapping::PERSISTENT |
                                      gl::Buffer::Mapping::WRITE);
   }
 
   Camera::Camera(Rotation rotation, const glm::vec3& position)
-      : rotation(rotation), position(position), matrices(Matrices()),
+      : position(position), matrices(Matrices()),
         matrixBuffer({sizeof(Matrices), nullptr,
                       gl::Buffer::Usage::DYNAMIC | gl::Buffer::Usage::WRITE |
                           gl::Buffer::Usage::PERSISTENT |
-                          gl::Buffer::Usage::COHERENT}) {
+                          gl::Buffer::Usage::COHERENT}),
+        id(camId++) {
+    glm::vec3 radians = glm::radians(glm::vec3(rotation.x, rotation.y, 0.0f));
+    glm::quat pitchQuat =
+        glm::angleAxis(radians.x, glm::vec3(1.0f, 0.0f, 0.0f));
+    glm::quat yawQuat = glm::angleAxis(radians.y, glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::quat rollQuat = glm::angleAxis(radians.z, glm::vec3(0.0f, 0.0f, 1.0f));
+
+    this->rotation = glm::normalize(yawQuat * pitchQuat * rollQuat);
+
     matrixMapping = matrixBuffer.map(gl::Buffer::Mapping::COHERENT |
                                      gl::Buffer::Mapping::PERSISTENT |
                                      gl::Buffer::Mapping::WRITE);
@@ -53,60 +68,86 @@ namespace engine {
     writeMatrices();
   }
 
-  void Camera::update(const Input& input, float dt) {
+  void Camera::update(const Input& input, float dt, bool acceptInput) {
     delta = dt;
-    if (enableMouse) {
-      auto& delta = input.mouse().delta;
-      rotation.pitch -= (delta.y);
-      rotation.yaw -= (delta.x);
-    }
+    if (acceptInput) {
+      glm::vec3 eulerRot = glm::eulerAngles(rotation);
 
-    if (input.isKeyDown(GLFW_KEY_UP))
-      rotation.pitch += 100.0f * dt;
-    if (input.isKeyDown(GLFW_KEY_DOWN))
-      rotation.pitch -= 100.0f * dt;
-    if (input.isKeyDown(GLFW_KEY_LEFT))
-      rotation.yaw += 100.0f * dt;
-    if (input.isKeyDown(GLFW_KEY_RIGHT))
-      rotation.yaw -= 100.0f * dt;
-
-    rotation.pitch = std::fmax(std::fmin(rotation.pitch, 89.0f), -89.0f);
-    if (rotation.yaw < 0.0f)
-      rotation.yaw += 360.0f;
-    else if (rotation.yaw > 360.0f)
-      rotation.yaw -= 360.0f;
-
-    auto forward = this->forward();
-    auto right = glm::normalize(glm::cross(forward, UP));
-    auto speed = MOVE_SPEED;
-
-    auto check = [&](int key, const glm::vec3& dir) {
-      if (input.isKeyDown(key)) {
-        position += dir * dt * speed;
+      float rollFactor = 1.f;
+      // Clamp roll
+      if (eulerRot.z > glm::radians(90.f) || eulerRot.z < glm::radians(-90.f)) {
+        eulerRot.z = glm::radians(180.f);
+        rollFactor = -1.f;
+      } else {
+        eulerRot.z = 0.f;
       }
-    };
 
-    if (input.isKeyDown(GLFW_KEY_LEFT_SHIFT))
-      speed = FAST_MOVE_SPEED;
+      if (enableMouse) {
+        auto& delta = input.mouse().delta;
 
-    check(GLFW_KEY_W, forward);
-    check(GLFW_KEY_S, forward * -1.0f);
-    check(GLFW_KEY_A, right * -1.0f);
-    check(GLFW_KEY_D, right);
+        auto eulerDelta = (glm::vec2(delta.y, delta.x) * 0.5f);
+        glm::vec3 radians =
+            glm::radians(glm::vec3(eulerDelta.x, eulerDelta.y, 0.0f));
 
-    check(GLFW_KEY_SPACE, UP);
-    check(GLFW_KEY_LEFT_CONTROL, UP * -1.0f);
+        eulerRot.x -= radians.x;
+        eulerRot.y -= radians.y * rollFactor;
+      }
 
+      if (input.isKeyDown(GLFW_KEY_UP))
+        eulerRot.x += glm::radians(100.0f * dt);
+      if (input.isKeyDown(GLFW_KEY_DOWN))
+        eulerRot.x -= glm::radians(100.0f * dt);
+      if (input.isKeyDown(GLFW_KEY_LEFT))
+        eulerRot.y += glm::radians(100.0f * dt) * rollFactor;
+      if (input.isKeyDown(GLFW_KEY_RIGHT))
+        eulerRot.y -= glm::radians(100.0f * dt) * rollFactor;
+
+      // Clamp pitch
+      if (rollFactor == 1.f)
+        eulerRot.x =
+            glm::clamp(eulerRot.x, glm::radians(-89.0f), glm::radians(89.0f));
+      else {
+        if (eulerRot.x < glm::radians(91.f) && eulerRot.x > glm::radians(0.f))
+          eulerRot.x = glm::radians(91.f);
+        else if (eulerRot.x > glm::radians(-91.f) &&
+                 eulerRot.x < glm::radians(0.f))
+          eulerRot.x = glm::radians(-91.f);
+      }
+
+      rotation = glm::quat(eulerRot);
+
+      auto forward = this->forward();
+      auto right = glm::normalize(glm::cross(forward, UP));
+      auto speed = MOVE_SPEED;
+
+      auto check = [&](int key, const glm::vec3& dir) {
+        if (input.isKeyDown(key)) {
+          position += dir * dt * speed;
+        }
+      };
+
+      if (input.isKeyDown(GLFW_KEY_LEFT_SHIFT))
+        speed = FAST_MOVE_SPEED;
+
+      check(GLFW_KEY_W, forward);
+      check(GLFW_KEY_S, forward * -1.0f);
+      check(GLFW_KEY_A, right * -1.0f);
+      check(GLFW_KEY_D, right);
+
+      check(GLFW_KEY_SPACE, UP);
+      check(GLFW_KEY_LEFT_CONTROL, UP * -1.0f);
+
+      if (input.isKeyPressed(GLFW_KEY_ESCAPE)) {
+        enableMouse = !enableMouse;
+      }
+    }
     buildMatrices();
     writeMatrices();
-
-    if (input.isKeyPressed(GLFW_KEY_ESCAPE)) {
-      enableMouse = !enableMouse;
-    }
   }
 
-  void PerspectiveCamera::update(const Input& input, float dt) {
-    Camera::update(input, dt);
+  void PerspectiveCamera::update(const Input& input, float dt,
+                                 bool acceptInput) {
+    Camera::update(input, dt, acceptInput);
     m_frustum = Frustum(matrices.viewProj);
   }
 
@@ -120,63 +161,23 @@ namespace engine {
   }
 
   glm::mat4 Camera::viewMatrix() const {
-    return glm::lookAt(position, position + forward(), UP);
+    return glm::lookAt(position, position + forward(),
+                       glm::vec3(0.0f, 1.0f, 0.0f));
   }
 
   void Camera::CameraDebugUI() {
-    static int renderCount = 0;
-    ImGui::PushID(renderCount++);
+    ImGui::PushID(id);
     ImGui::Text("Delta Time: %.4f s (%.2f FPS)", delta, 1.0f / delta);
     ImGui::Text("Position: (%.2f, %.2f, %.2f)", position.x, position.y,
                 position.z);
-    ImGui::Text("Rotation: (%.2f, %.2f)", rotation.pitch, rotation.yaw);
+    glm::vec3 radEuler = glm::eulerAngles(rotation);
+    glm::vec3 rotation = glm::degrees(radEuler);
+    ImGui::Text("Rotation: (%.2f, %.2f, %.2f)", rotation.x, rotation.y,
+                rotation.z);
     auto forward = this->forward();
     ImGui::Text("Forward: (%.2f, %.2f, %.2f)", forward.x, forward.y, forward.z);
     ImGui::Checkbox("Enable Mouse", &enableMouse);
 
-    bool needSetPolygonMode = false;
-
-    const char* polygonTypes[] = {"Fill", "Wireframe", "Point"};
-
-    if (ImGui::BeginCombo("Polygon Type", polygonTypes[polygonType])) {
-      if (ImGui::Selectable("Fill", polygonType == 0)) {
-        needSetPolygonMode = true;
-        polygonType = 0;
-      }
-      if (ImGui::Selectable("Wireframe", polygonType == 1)) {
-        needSetPolygonMode = true;
-        polygonType = 1;
-      }
-      if (ImGui::Selectable("Point", polygonType == 2)) {
-        needSetPolygonMode = true;
-        polygonType = 2;
-      }
-
-      ImGui::EndCombo();
-    }
-
-    if (ImGui::Checkbox("VSync", &vsync)) {
-      int interval = vsync ? 1 : 0;
-      glfwSwapInterval(interval);
-      engine::Logger::info("VSync {}", vsync ? "Enabled" : "Disabled");
-    }
-
     ImGui::PopID();
-
-    if (needSetPolygonMode) {
-      switch (polygonType) {
-      case 0:
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        break;
-      case 1:
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        break;
-      case 2:
-        glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
-        break;
-      default:
-        break;
-      }
-    }
   }
 } // namespace engine

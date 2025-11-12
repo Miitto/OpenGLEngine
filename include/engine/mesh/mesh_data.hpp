@@ -22,8 +22,8 @@ namespace engine::mesh {
     static std::expected<Data, std::string>
     fromFile(const std::string_view& name);
 
-    static std::expected<Data, std::string>
-    fromGLTFFile(const std::string_view& name);
+    // static std::expected<Data, std::string>
+    // fromGLTFFile(const std::string_view& name);
 
     Data(std::vector<glm::vec3>&& vertices, std::vector<glm::vec4>&& colors,
          std::vector<glm::vec2>&& textureCoords,

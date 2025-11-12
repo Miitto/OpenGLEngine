@@ -68,15 +68,15 @@ namespace engine {
                            {1.0 - splitRatio, 1.0f});
     }
 
-    virtual void update(const Input& input, float dt) {
+    virtual void update(const Input& input, float dt, bool acceptInput = true) {
       if (input.isKeyPressed(GLFW_KEY_TAB)) {
         leftActive = !leftActive;
       }
 
       if (leftActive) {
-        leftCamera.update(input, dt);
+        leftCamera.update(input, dt, acceptInput);
       } else {
-        rightCamera.update(input, dt);
+        rightCamera.update(input, dt, acceptInput);
       }
     }
 

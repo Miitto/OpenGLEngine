@@ -3,6 +3,7 @@
 #include "engine/input.hpp"
 #include <gl/buffer.hpp>
 #include <glm/glm.hpp>
+#include <glm\gtc\quaternion.hpp>
 
 namespace engine {
   /// <summary>
@@ -12,13 +13,7 @@ namespace engine {
   /// </summary>
   class Camera {
   public:
-    /// <summary>
-    /// Pitch and yaw rotation.
-    /// </summary>
-    struct Rotation {
-      float pitch;
-      float yaw;
-    };
+    using Rotation = glm::vec2;
 
     /// <summary>
     /// Matrices struct sent to the GPU.
@@ -58,7 +53,7 @@ namespace engine {
     /// </summary>
     /// <param name="input">User input data</param>
     /// <param name="dt">Delta time</param>
-    virtual void update(const Input& input, float dt);
+    virtual void update(const Input& input, float dt, bool acceptInput = true);
     /// <summary>
     /// Should be called whenever the viewport is resized.
     /// </summary>
@@ -70,8 +65,8 @@ namespace engine {
     inline const Matrices& GetMatrices() const { return matrices; }
     inline const glm::vec3& GetPosition() const { return position; }
     inline void SetPosition(const glm::vec3& pos) { position = pos; }
-    inline const Rotation& GetRotation() const { return rotation; }
-    inline void SetRotation(const Rotation& rot) { rotation = rot; }
+    inline const glm::quat& GetRotation() const { return rotation; }
+    inline void SetRotation(const glm::quat& rot) { rotation = rot; }
 
     inline void EnableMouse(bool enable) { enableMouse = enable; }
 
@@ -80,13 +75,7 @@ namespace engine {
     /// </summary>
     /// <returns>Camera's forward vector</returns>
     inline glm::vec3 forward() const {
-      glm::vec3 forward;
-      forward.x = -std::sin(glm::radians(rotation.yaw)) *
-                  std::cos(glm::radians(rotation.pitch));
-      forward.y = std::sin(glm::radians(rotation.pitch));
-      forward.z = -std::cos(glm::radians(rotation.yaw)) *
-                  std::cos(glm::radians(rotation.pitch));
-      return glm::normalize(forward);
+      return glm::normalize(rotation * glm::vec3(0.0f, 0.0f, -1.0f));
     }
 
     /// <summary>
@@ -153,7 +142,7 @@ namespace engine {
       matrixMapping.write(&matrices, sizeof(Matrices));
     }
 
-    Rotation rotation;
+    glm::quat rotation;
     glm::vec3 position;
     Matrices matrices;
     gl::Buffer matrixBuffer;
@@ -162,6 +151,7 @@ namespace engine {
     int polygonType = 0;
     bool vsync = true;
     bool enableMouse = true;
+    uint32_t id;
   };
 
   /// <summary>
@@ -190,7 +180,7 @@ namespace engine {
     /// </summary>
     /// <param name="input">User input data</param>
     /// <param name="dt">Delta time</param>
-    void update(const Input& input, float dt) override;
+    void update(const Input& input, float dt, bool acceptInput = true) override;
     /// <summary>
     /// Handles viewport resize. Updates the projection matrix and frustum.
     /// </summary>
