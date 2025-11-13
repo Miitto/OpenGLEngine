@@ -70,7 +70,8 @@ namespace engine {
 
     virtual void update(const Input& input, float dt, bool acceptInput = true) {
       if (input.isKeyPressed(GLFW_KEY_TAB)) {
-        leftActive = !leftActive;
+        if (splitRatio > 0.0f && splitRatio < 1.0f)
+          leftActive = !leftActive;
       }
 
       leftCamera.update(input, dt, acceptInput && leftActive);

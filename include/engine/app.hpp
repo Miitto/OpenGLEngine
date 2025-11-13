@@ -35,14 +35,14 @@ namespace engine {
     /// <param name="width">Window width</param>
     /// <param name="height">Window height</param>
     /// <param name="title">Window title</param>
-    App(int width, int height, const char title[]);
+    App(int width, int height, const char title[], bool fullscreen = false);
     ~App();
 
     /// <summary>
     /// Function called every frame to update application state.
     /// </summary>
     /// <param name="frame">Infomation about the current frame</param>
-    virtual void update(const FrameInfo& frame);
+    virtual bool update(const FrameInfo& frame);
     /// <summary>
     /// Function called every frame to render the application.
     /// </summary>
@@ -158,7 +158,8 @@ namespace engine {
 
       FrameInfo frameInfo{app.getFrameIndex(), delta};
 
-      app.update(frameInfo);
+      if (app.update(frameInfo))
+        continue;
       app.render(frameInfo);
       app.postRender();
     }

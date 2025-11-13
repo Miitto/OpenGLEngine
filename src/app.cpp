@@ -25,7 +25,7 @@ namespace {
 
     gbuffers.normal = std::move(gl::Texture());
     gbuffers.normal.label("GBuffer Normal");
-    gbuffers.normal.storage(1, GL_RGB8, s);
+    gbuffers.normal.storage(1, GL_RGB16F, s);
     setParams(gbuffers.normal);
 
     gbuffers.material = std::move(gl::Texture());
@@ -57,9 +57,9 @@ namespace engine {
   bool App::initialized = false;
   std::vector<std::function<void()>> App::pluginShutdowns = {};
 
-  App::App(int width, int height, const char title[])
-      : window({width, height, title, true}), input(window), gui(window),
-        windowSize(window.size()) {
+  App::App(int width, int height, const char title[], bool fullscreen)
+      : window({width, height, title, fullscreen, true}), input(window),
+        gui(window), windowSize(window.size()) {
     if (initialized) {
       Logger::critical("Engine already initialized, exiting");
       throw std::runtime_error("Engine was already initialized");
@@ -87,11 +87,11 @@ namespace engine {
     gbuffers = createGBuffers(newSize);
   }
 
-  void App::update(const FrameInfo& frame) {
+  bool App::update(const FrameInfo& frame) {
     window.pollEvents();
     if (glfwGetWindowAttrib(window, GLFW_ICONIFIED) != 0) {
       gui.sleep(10);
-      return;
+      return true;
     }
     gui.newFrame();
     input.imGuiWantsMouse(gui.io().WantCaptureMouse);
@@ -102,6 +102,8 @@ namespace engine {
       onWindowResize(ws);
       windowSize = ws;
     }
+
+    return false;
   }
 
 #define LOAD_PLUGIN(T)                                                         \

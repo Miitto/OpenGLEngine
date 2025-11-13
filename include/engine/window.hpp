@@ -26,7 +26,6 @@ namespace engine {
   /// An individual window. Requires a <c>WindowManager</c> to be created first.
   /// </summary>
   class Window {
-    GLFWwindow* window;
 
   public:
     /// <summary>
@@ -37,9 +36,13 @@ namespace engine {
     /// <param name="title">The title of the window.</param>
     /// <param name="makeCurrent">Whether to make the window the current context
     /// upon creation. Defaults to false.</param>
-    Window(int width, int height, const char* title, bool makeCurrent = false);
+    Window(int width, int height, const char* title, bool fullscreen = false,
+           bool makeCurrent = false);
     ~Window();
     operator GLFWwindow*() const { return window; }
+
+    void fullscreen(bool enable);
+    bool isFullscreen() const { return fullscreened; }
 
     void makeCurrent() const;
     bool shouldClose() const;
@@ -68,5 +71,10 @@ namespace engine {
     };
 
     Size size() const;
+
+  protected:
+    GLFWwindow* window;
+    bool fullscreened;
+    Size cachedSize;
   };
 } // namespace engine

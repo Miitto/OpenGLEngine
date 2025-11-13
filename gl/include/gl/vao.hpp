@@ -122,7 +122,7 @@ namespace gl {
     /// </summary>
     /// <returns>RAII object that will unbind the VAO on its
     /// destruction</returns>
-    inline BindGuard bindGuard() {
+    inline BindGuard bindGuard() const {
       bind();
       return BindGuard();
     }

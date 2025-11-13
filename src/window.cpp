@@ -32,7 +32,23 @@ namespace engine {
     };
   }
 
-  Window::Window(int width, int height, const char* title, bool makeCurrent) {
+  Window::Window(int width, int height, const char* title, bool fullscreen,
+                 bool makeCurrent)
+      : fullscreened(fullscreen), cachedSize({width, height}) {
+    GLFWmonitor* monitor = nullptr;
+    if (fullscreen) {
+      monitor = glfwGetPrimaryMonitor();
+      GLFWvidmode const* mode = glfwGetVideoMode(monitor);
+      width = mode->width;
+      height = mode->height;
+
+      glfwWindowHint(GLFW_RED_BITS, mode->redBits);
+      glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
+      glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
+      glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
+      glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+    }
+
     window = glfwCreateWindow(width, height, title, nullptr, nullptr);
     if (makeCurrent) {
       this->makeCurrent();
@@ -40,6 +56,31 @@ namespace engine {
   }
 
   Window::~Window() { glfwDestroyWindow(window); }
+
+  void Window::fullscreen(bool enable) {
+    fullscreened = enable;
+    if (enable) {
+      GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+      GLFWvidmode const* mode = glfwGetVideoMode(monitor);
+      glfwSetWindowMonitor(window, monitor, 0, 0, mode->width, mode->height,
+                           mode->refreshRate);
+    } else {
+      GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+      GLFWvidmode const* mode = glfwGetVideoMode(monitor);
+
+      auto width = mode->width;
+      auto height = mode->height;
+
+      width /= 2;
+      height /= 2;
+
+      width -= cachedSize.width / 2;
+      height -= cachedSize.height / 2;
+
+      glfwSetWindowMonitor(window, nullptr, width, height, cachedSize.width,
+                           cachedSize.height, 0);
+    }
+  }
 
   void Window::makeCurrent() const { glfwMakeContextCurrent(window); }
 
@@ -54,7 +95,8 @@ namespace engine {
 
   Window::Size Window::size() const {
     Size s;
-    glfwGetWindowSize(window, &s.width, &s.height);
+    glfwGetFramebufferSize(window, &s.width, &s.height);
+
     return s;
   }
 

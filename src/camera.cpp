@@ -70,6 +70,8 @@ namespace engine {
 
   void Camera::update(const Input& input, float dt, bool acceptInput) {
     delta = dt;
+    matrices.time += dt;
+
     if (acceptInput) {
       glm::vec3 eulerRot = glm::eulerAngles(rotation);
 

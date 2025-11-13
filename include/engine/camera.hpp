@@ -27,6 +27,7 @@ namespace engine {
       glm::mat4 invViewProj = glm::mat4(1.0);
       glm::vec2 resolution = glm::vec2(1.0);
       glm::vec2 uvRange = glm::vec2(0.0, 1.0);
+      float time;
     };
 
     /// <summary>
@@ -129,7 +130,7 @@ namespace engine {
       auto invViewProj = glm::inverse(viewProj);
 
       matrices = Matrices(view, proj, viewProj, invView, invProj, invViewProj,
-                          matrices.resolution, matrices.uvRange);
+                          matrices.resolution, matrices.uvRange, matrices.time);
       return matrices;
     }
 
@@ -147,7 +148,7 @@ namespace engine {
     Matrices matrices;
     gl::Buffer matrixBuffer;
     gl::Mapping matrixMapping;
-    float delta = 0.0;
+    float delta = 0.0f;
     int polygonType = 0;
     bool vsync = true;
     bool enableMouse = true;
